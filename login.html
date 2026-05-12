@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In Honored Memory — Captain Melvin Lum</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-deep: #0a1422; --navy: #0f1d31; --navy-line: #1f3251;
+    --brass: #c89968; --brass-deep: #a87a4a; --brass-light: #e2c089;
+    --ivory: #f3ead7; --ivory-soft: #d8cdb4; --muted: #8a8068;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: radial-gradient(ellipse at 50% 30%, rgba(200,153,104,0.14), transparent 55%), linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color: var(--ivory);
+    min-height: 100vh;
+    display: grid; place-items: center;
+    padding: 32px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  .card { width: 100%; max-width: 440px; text-align: center; }
+  .crest-mark {
+    width: 56px; height: 56px; border: 1px solid var(--brass);
+    margin: 0 auto 28px; display: grid; place-items: center;
+    color: var(--brass-light); font-family: "Cormorant Garamond", serif; font-size: 26px;
+  }
+  .ribbon {
+    display: inline-flex; align-items: center; gap: 14px;
+    color: var(--brass); font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .ribbon::before, .ribbon::after { content: ""; width: 40px; height: 1px; background: var(--brass); }
+  h1 {
+    font-family: "Cormorant Garamond", serif; font-weight: 500;
+    font-size: clamp(32px, 5vw, 44px); line-height: 1.1;
+    letter-spacing: -0.01em; margin: 0 0 10px;
+  }
+  h1 em { font-style: italic; color: var(--brass-light); font-weight: 400; }
+  .lede {
+    font-family: "Cormorant Garamond", serif; font-style: italic;
+    color: var(--ivory-soft); font-size: 17px; line-height: 1.5;
+    margin: 0 auto 40px; max-width: 360px;
+  }
+  form { display: flex; flex-direction: column; gap: 14px; }
+  label {
+    font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--brass); text-align: left;
+  }
+  input[type="password"] {
+    background: transparent; border: 1px solid var(--navy-line);
+    color: var(--ivory); font: inherit; font-size: 15px;
+    padding: 14px 16px; outline: none;
+    transition: border-color 0.2s ease;
+  }
+  input[type="password"]:focus { border-color: var(--brass); }
+  input[type="password"]::placeholder { color: var(--muted); }
+  button {
+    background: var(--brass); color: var(--navy-deep);
+    border: 0; padding: 14px 22px;
+    font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  button:hover { background: var(--brass-light); }
+  .err {
+    color: #d99c8a; font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; min-height: 16px; margin-top: 4px;
+  }
+  .foot {
+    margin-top: 56px; color: var(--muted); font-size: 11px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="crest-mark">L</div>
+    <div class="ribbon">In Honored Memory</div>
+    <h1>Captain Melvin <em>Lum</em></h1>
+    <p class="lede">A private remembrance for family, friends, and the crews who rode with him. Please enter the password shared with you.</p>
+
+    <form id="gate" autocomplete="off">
+      <label for="pw">Password</label>
+      <input id="pw" type="password" placeholder="Enter password" autocomplete="off" autofocus required>
+      <button type="submit">Enter</button>
+      <div class="err" id="err" aria-live="polite"></div>
+    </form>
+
+    <div class="foot">Melvin's Family · MMXXVI</div>
+  </main>
+
+<script>
+  (function () {
+    const PASSWORD_HASH = "475273bf6aefbb6d867f9ed8430e407b0ba33527811612ba40036cbd761dfe39";
+    const FLAG = "melvin-memorial::unlocked";
+    const form = document.getElementById("gate");
+    const pw = document.getElementById("pw");
+    const err = document.getElementById("err");
+
+    if (sessionStorage.getItem(FLAG) === "1") {
+      location.replace("index.html");
+      return;
+    }
+
+    async function sha256Hex(s) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+      return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const hash = await sha256Hex(pw.value);
+      if (hash === PASSWORD_HASH) {
+        sessionStorage.setItem(FLAG, "1");
+        location.replace("index.html");
+      } else {
+        err.textContent = "That password isn't right.";
+        pw.value = "";
+        pw.focus();
+      }
+    });
+  })();
+</script>
+</body>
+</html>

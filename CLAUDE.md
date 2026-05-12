@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A static memorial site for Captain Melvin Lum. `index.html` is a soft password gate; on success it sets a `sessionStorage` flag and redirects to `main.html`, the actual memorial. `main.html` checks the same flag at the top of `<head>` and bounces back to `index.html` if it's missing. There is no build step, no package manager, no tests — open `index.html` in a browser, or serve the directory with any static server (`python3 -m http.server`, `npx serve`, etc.).
+A static memorial site for Captain Melvin Lum. `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). There is no build step, no package manager, no tests — serve the directory with any static server (`python3 -m http.server`, `npx serve`, etc.).
 
-The gate is **cosmetic, not access control**: the password's SHA-256 lives in `index.html`, but anyone who reads the JS can bypass the check or open `main.html` directly. For real protection, use hosting-layer auth (Cloudflare Access, basic auth, etc.). To rotate the password, replace the `PASSWORD_HASH` constant in `index.html` with the new SHA-256 hex (`printf '%s' 'newpassword' | shasum -a 256`).
+The gate is **cosmetic, not access control**: the password's SHA-256 lives in `login.html`, but anyone who reads the JS can bypass the check (e.g., set the unlock flag in DevTools). For real protection, use hosting-layer auth (Cloudflare Access, basic auth, etc.). To rotate the password, replace the `PASSWORD_HASH` constant in `login.html` with the new SHA-256 hex (`printf '%s' 'newpassword' | shasum -a 256`).
 
 ## Layout
 
 ```
-main.html   entry — page-specific styles inline, content sections, custom-element instances
+index.html  the memorial, served at / — page-specific styles inline, content sections, custom-element instances
+login.html  password gate — redirects to / on unlock
 styles/shared.css  cross-section primitives (.block, .section-head, .gal-grid, .vid-grid, .tl-rail, .notify-form)
 scripts/           two custom elements, no framework, no module system (loaded as plain <script>)
 ```
@@ -41,5 +42,5 @@ Persistent message wall (text + photo/video) with a focus view. Storage is **`lo
 ## When editing
 
 - Adding a new image slot: give it a fresh `id`, size it via the parent CSS (slot inherits container width/height), and remember it will only be fillable inside the omelette runtime.
-- Adding a new section: follow the `<section class="block …">` + `.section-head` (`.section-num` + `.section-meta`) pattern already used six times in `main.html`; theme tokens come from the page-level `:root` block at the top of the file.
-- Page-specific styling lives inline in `main.html`; only put rules in `styles/shared.css` if they are reusable primitives.
+- Adding a new section: follow the `<section class="block …">` + `.section-head` (`.section-num` + `.section-meta`) pattern already used in `index.html`; theme tokens come from the page-level `:root` block at the top of the file.
+- Page-specific styling lives inline in `index.html`; only put rules in `styles/shared.css` if they are reusable primitives.
