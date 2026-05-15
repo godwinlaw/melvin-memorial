@@ -20,7 +20,7 @@ export default {
       }
 
       if (pathname === "/api/rsvps" && request.method === "GET") {
-        return jsonResponse({ error: "Not implemented" }, 501);
+        return await handleListRsvps(request, env);
       }
 
       return env.ASSETS.fetch(request);
@@ -141,6 +141,70 @@ async function verifyTurnstile(token, env, ip) {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+async function handleListRsvps(request, env) {
+  const presented = parseBearer(request.headers.get("authorization"));
+  const expected = env.ADMIN_TOKEN ?? "";
+  if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  let rows;
+  try {
+    const result = await env.DB.prepare(
+      "SELECT id, name, email, guest_names, party_size, created_at FROM rsvps ORDER BY created_at DESC"
+    ).all();
+    rows = result.results ?? [];
+  } catch (err) {
+    console.error("rsvp_list_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  let totalAttendees = 0;
+  const rsvps = rows.map((r) => {
+    const partySize = Number(r.party_size) || 0;
+    totalAttendees += partySize;
+    let guestNames = [];
+    try {
+      const parsed = JSON.parse(r.guest_names ?? "[]");
+      if (Array.isArray(parsed)) guestNames = parsed.filter((s) => typeof s === "string");
+    } catch {}
+    return {
+      id: r.id,
+      created_at: r.created_at,
+      name: r.name,
+      email: r.email,
+      party_size: partySize,
+      guest_names: guestNames,
+    };
+  });
+
+  return jsonResponse({
+    rsvps,
+    total_parties: rsvps.length,
+    total_attendees: totalAttendees,
+  });
+}
+
+function parseBearer(headerValue) {
+  if (!headerValue) return null;
+  const m = /^Bearer\s+(.+)$/i.exec(headerValue.trim());
+  return m ? m[1].trim() : null;
+}
+
+async function constantTimeEquals(a, b) {
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  const va = new Uint8Array(ha);
+  const vb = new Uint8Array(hb);
+  if (va.length !== vb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < va.length; i++) diff |= va[i] ^ vb[i];
+  return diff === 0;
 }
 
 function jsonResponse(body, status = 200) {
