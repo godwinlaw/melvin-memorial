@@ -19,7 +19,7 @@ In:
 Out:
 - Confirmation or notification emails (deferred — modal-only confirmation for now).
 - Editing or deleting RSVPs through any UI (append-only model; CLI for any cleanup).
-- Rate limiting (deferred until we see actual abuse).
+- Rate limiting (deferred until we see actual abuse — bot prevention is handled by Turnstile, see Security).
 - A "regrets / not attending" signal (form is opt-in).
 - Test harness (project has none and this feature doesn't justify introducing one).
 
@@ -147,7 +147,7 @@ Default export is `{ fetch(request, env, ctx) }`. Routes branch on `URL(request.
 
 ### `POST /api/rsvp` — public
 
-Accepts JSON `{ name: string, email: string, guests: string[] }`.
+Accepts JSON `{ name: string, email: string, guests: string[], turnstileToken: string }`.
 
 - Reject if `Content-Type` isn't `application/json` → 415.
 - Parse body inside `try/catch` → 400 `{"error":"Invalid JSON"}` on failure.
@@ -155,6 +155,7 @@ Accepts JSON `{ name: string, email: string, guests: string[] }`.
   - `name`: trimmed length 1–80
   - `email`: trimmed length 1–120, matches `/^\S+@\S+\.\S+$/`
   - `guests`: array, length 0–10 *after* filtering whitespace-only entries; each kept entry trimmed length 1–80
+  - `turnstileToken`: non-empty string; verified against Cloudflare's siteverify endpoint (see Security). Failure → 400 `{"error":"Bot check failed. Please try again."}`.
 - Compute `party_size = 1 + guests.length` after filtering.
 - Insert via prepared statement:
   ```js
@@ -276,7 +277,8 @@ D1 failures (constraint violations, transient errors) are caught, logged, and su
 - **Admin page renders names/emails as `textContent`**, never `innerHTML`. A malicious `<script>` in a name field renders as literal text.
 - **Admin token** is a Worker secret. Compared in constant time. Cached in admin-side `sessionStorage` only after a successful 200. Never appears in URLs or in the Worker logs.
 - **No PII in logs.**
-- **Rate limiting** is intentionally absent. Field length caps + 10-guest cap + admin-only read are the current defenses; revisit if abuse appears.
+- **Bot prevention via Cloudflare Turnstile.** The form embeds a Turnstile widget (`<div class="cf-turnstile" data-sitekey="…">`) that produces a one-time token included with every submission. The Worker verifies it server-side by POSTing to `https://challenges.cloudflare.com/turnstile/v0/siteverify` with `secret = env.TURNSTILE_SECRET_KEY` and `response = body.turnstileToken`; if `success !== true`, the request is rejected with 400. The site key (public, safe to commit) is read by the form from a small generated config; the secret is set via `wrangler secret put TURNSTILE_SECRET_KEY`. In local dev, Turnstile's "always passes" testing keys are used so devs don't need a Cloudflare account configured.
+- **Rate limiting** is intentionally absent. Field length caps + 10-guest cap + admin-only read + Turnstile are the current defenses; revisit if abuse appears.
 
 ---
 
@@ -298,6 +300,7 @@ The project has no test framework today. We are not adding one for this feature 
 **Added:**
 - `src/worker.js`
 - `scripts/rsvp-form.js`
+- `scripts/rsvp-config.js` (Turnstile site key — public, committed)
 - `admin.html`
 - `migrations/0001_create_rsvps.sql`
 
@@ -309,3 +312,4 @@ The project has no test framework today. We are not adding one for this feature 
 - `wrangler d1 create melvin-rsvps` → paste `database_id` into `wrangler.jsonc`.
 - `wrangler d1 migrations apply melvin-rsvps` (and `--local` for local dev).
 - `wrangler secret put ADMIN_TOKEN` (paste a long random string).
+- Create a Turnstile site at https://dash.cloudflare.com/?to=/:account/turnstile, add the production hostname, copy the **site key** into a small config file (`scripts/rsvp-config.js`) and the **secret key** into `wrangler secret put TURNSTILE_SECRET_KEY`.
