@@ -298,8 +298,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       if (addBtn) {
         addBtn.addEventListener("click", () => {
           if (this._guests.length >= GUESTS_MAX) return;
-          // capture current input values before re-render
-          this._snapshotGuests();
+          this._snapshotInputs();
           this._guests.push("");
           this._render();
           // focus the newly-added row
@@ -312,7 +311,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       root.querySelectorAll("[data-remove-idx]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const idx = Number(btn.getAttribute("data-remove-idx"));
-          this._snapshotGuests();
+          this._snapshotInputs();
           this._guests.splice(idx, 1);
           this._render();
         });
@@ -321,12 +320,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       if (form) {
         form.addEventListener("submit", (e) => {
           e.preventDefault();
-          // capture current input values into _pendingName/_pendingEmail so a failed
-          // submit re-renders with the user's text intact
-          const nameEl = root.querySelector('input[name="name"]');
-          const emailEl = root.querySelector('input[name="email"]');
-          this._pendingName = nameEl?.value ?? "";
-          this._pendingEmail = emailEl?.value ?? "";
+          this._snapshotInputs();
           this._submit();
         });
       }
@@ -346,6 +340,14 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
           this._guests[idx] = inp.value;
         }
       });
+    }
+
+    _snapshotInputs() {
+      this._snapshotGuests();
+      const nameEl = this._root.querySelector('input[name="name"]');
+      const emailEl = this._root.querySelector('input[name="email"]');
+      if (nameEl) this._pendingName = nameEl.value;
+      if (emailEl) this._pendingEmail = emailEl.value;
     }
 
     async _submit() {
