@@ -121,6 +121,8 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._turnstileToken = "";
       this._turnstileWidgetId = null;
       this._mountGen = 0;
+      this._pendingName = "";
+      this._pendingEmail = "";
       this._root = this.attachShadow({ mode: "open" });
     }
 
