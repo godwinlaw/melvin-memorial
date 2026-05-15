@@ -189,8 +189,8 @@ async function handleListRsvps(request, env) {
 
 function parseBearer(headerValue) {
   if (!headerValue) return null;
-  const m = /^Bearer\s+(.+)$/i.exec(headerValue.trim());
-  return m ? m[1].trim() : null;
+  const m = /^Bearer\s+(\S+)$/i.exec(headerValue.trim());
+  return m ? m[1] : null;
 }
 
 async function constantTimeEquals(a, b) {
