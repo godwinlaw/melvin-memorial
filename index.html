@@ -15,6 +15,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles/shared.css">
 <script src="scripts/lantern-wall.js"></script>
+<script src="scripts/rsvp-config.js"></script>
+<script src="scripts/rsvp-form.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
   :root {
     --navy-deep: #0a1422; --navy: #0f1d31; --navy-2: #16263e; --navy-line: #1f3251;
@@ -107,6 +110,42 @@
   .foot-links a { color: var(--brass); }
   .foot-copy { color: var(--muted); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px; }
   .back-to-picker { background: rgba(10,20,34,0.85); border-color: var(--navy-line); color: var(--ivory-soft); }
+  .rsvp-cta { margin-top: 36px; }
+  .rsvp-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    border: 1px solid var(--brass);
+    background: transparent;
+    color: var(--brass-light);
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .rsvp-btn:hover { background: var(--brass); color: var(--navy-deep); }
+
+  .rsvp-dialog {
+    border: 1px solid var(--brass);
+    background: var(--navy);
+    color: var(--ivory);
+    padding: 0;
+    width: min(520px, 92vw);
+    max-height: 90vh;
+    overflow: auto;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+  .rsvp-dialog::backdrop { background: rgba(10,20,34,0.78); backdrop-filter: blur(4px); }
+  .rsvp-close {
+    position: absolute; top: 10px; right: 12px;
+    width: 32px; height: 32px;
+    background: transparent; border: 1px solid transparent;
+    color: var(--ivory-soft); cursor: pointer;
+    font-size: 22px; line-height: 1;
+  }
+  .rsvp-close:hover { color: var(--brass-light); border-color: var(--brass); }
+  .rsvp-dialog-inner { position: relative; }
 </style>
 </head>
 <body>
@@ -149,8 +188,19 @@
       <div><small>Date & Time</small><b>May 30, 2026 @ 12:00 PM</b></div>
       <div><small>Place</small><b>1275 Harbor Bay Parkway</b></div>
     </div>
+    <div class="rsvp-cta">
+      <button type="button" class="rsvp-btn" data-rsvp-open>RSVP</button>
+    </div>
   </div>
 </section>
+
+<dialog class="rsvp-dialog" id="rsvp-dialog" aria-label="RSVP">
+  <div class="rsvp-dialog-inner">
+    <button type="button" class="rsvp-close" data-rsvp-close aria-label="Close">×</button>
+    <rsvp-form id="memorial-rsvp" endpoint="/api/rsvp"
+      style="--rsvp-ink: var(--ivory); --rsvp-ink-soft: var(--ivory-soft); --rsvp-accent: var(--brass); --rsvp-line: rgba(200,153,104,0.3); --rsvp-bg: transparent; --rsvp-serif: 'Cormorant Garamond', serif;"></rsvp-form>
+  </div>
+</dialog>
 
 <!-- Sections below temporarily hidden until content is ready. To re-enable, remove the surrounding comment markers. -->
 <!--
@@ -220,10 +270,39 @@
   <div class="foot-rule"></div>
   <div class="foot-links">
     <a href="#service">Service</a>
+    <a href="#" data-rsvp-open>RSVP</a>
   </div>
   <div class="foot-rule"></div>
   <div class="foot-copy">In Honored Memory · Melvin's Family · MMXXVI</div>
 </footer>
+
+<script>
+  (function () {
+    const dialog = document.getElementById("rsvp-dialog");
+    const form = document.getElementById("memorial-rsvp");
+    if (!dialog || !form) return;
+
+    document.querySelectorAll("[data-rsvp-open]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (typeof dialog.showModal === "function") dialog.showModal();
+        else dialog.setAttribute("open", "");
+      });
+    });
+
+    dialog.querySelectorAll("[data-rsvp-close]").forEach((btn) => {
+      btn.addEventListener("click", () => dialog.close());
+    });
+
+    dialog.addEventListener("close", () => {
+      if (form.isDone) form.reset();
+    });
+
+    form.addEventListener("rsvp-submitted", () => {
+      // keep the dialog open so the user sees the thank-you state
+    });
+  })();
+</script>
 
 </body>
 </html>
