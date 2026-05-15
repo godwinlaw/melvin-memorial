@@ -194,7 +194,7 @@
   </div>
 </section>
 
-<dialog class="rsvp-dialog" id="rsvp-dialog" aria-labelledby="rsvp-dialog-title">
+<dialog class="rsvp-dialog" id="rsvp-dialog" aria-label="RSVP">
   <div class="rsvp-dialog-inner">
     <button type="button" class="rsvp-close" data-rsvp-close aria-label="Close">×</button>
     <rsvp-form id="memorial-rsvp" endpoint="/api/rsvp"
@@ -283,7 +283,8 @@
     if (!dialog || !form) return;
 
     document.querySelectorAll("[data-rsvp-open]").forEach((btn) => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
         if (typeof dialog.showModal === "function") dialog.showModal();
         else dialog.setAttribute("open", "");
       });
