@@ -144,6 +144,10 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._render();
     }
 
+    get isDone() {
+      return this._state === "done";
+    }
+
     get _endpoint() {
       return this.getAttribute("endpoint") || "/api/rsvp";
     }

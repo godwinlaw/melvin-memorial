@@ -118,7 +118,7 @@ Exactly one rendered at a time inside the shadow root:
 fetch(endpoint, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ name, email, guests })
+  body: JSON.stringify({ name, email, guests, turnstileToken })
 })
 ```
 

@@ -295,7 +295,7 @@
     });
 
     dialog.addEventListener("close", () => {
-      if (form._state === "done") form.reset();
+      if (form.isDone) form.reset();
     });
 
     form.addEventListener("rsvp-submitted", () => {
