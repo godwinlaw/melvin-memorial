@@ -137,6 +137,8 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._guests = [];
       this._error = "";
       this._turnstileToken = "";
+      this._pendingName = "";
+      this._pendingEmail = "";
       this._render();
     }
 
@@ -250,6 +252,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
             <span>Your name</span>
             <input class="txt" type="text" name="name" required
                    maxlength="${NAME_MAX}" autocomplete="name"
+                   value="${escapeAttr(this._pendingName ?? "")}"
                    ${isSubmitting ? "disabled" : ""}>
           </label>
 
@@ -257,6 +260,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
             <span>Email</span>
             <input class="txt" type="email" name="email" required
                    maxlength="${EMAIL_MAX}" autocomplete="email"
+                   value="${escapeAttr(this._pendingEmail ?? "")}"
                    ${isSubmitting ? "disabled" : ""}>
           </label>
 
@@ -311,6 +315,12 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       if (form) {
         form.addEventListener("submit", (e) => {
           e.preventDefault();
+          // capture current input values into _pendingName/_pendingEmail so a failed
+          // submit re-renders with the user's text intact
+          const nameEl = root.querySelector('input[name="name"]');
+          const emailEl = root.querySelector('input[name="email"]');
+          this._pendingName = nameEl?.value ?? "";
+          this._pendingEmail = emailEl?.value ?? "";
           this._submit();
         });
       }
@@ -332,9 +342,72 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       });
     }
 
-    _submit() {
-      // implemented in Task 6
-      console.warn("rsvp-form: submit not yet wired");
+    async _submit() {
+      this._snapshotGuests();
+      const nameEl = this._root.querySelector('input[name="name"]');
+      const emailEl = this._root.querySelector('input[name="email"]');
+      const name = (nameEl?.value ?? "").trim();
+      const email = (emailEl?.value ?? "").trim();
+      const guests = this._guests.map((g) => g.trim()).filter(Boolean);
+      const turnstileToken = this._turnstileToken;
+
+      if (!name) return this._fail("Please enter your name.");
+      if (!email) return this._fail("Please enter your email.");
+      if (!/^\S+@\S+\.\S+$/.test(email)) return this._fail("That email address doesn't look right.");
+      if (guests.length > GUESTS_MAX) return this._fail(`Please list at most ${GUESTS_MAX} additional guests.`);
+      if (!turnstileToken) return this._fail("Please complete the bot check.");
+
+      this._state = "submitting";
+      this._error = "";
+      this._render();
+
+      let res;
+      try {
+        res = await fetch(this._endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, guests, turnstileToken }),
+        });
+      } catch {
+        // re-fill the inputs on error
+        this._restoreInputs(name, email);
+        // Turnstile tokens are single-use; force a fresh widget for retry.
+        this._turnstileToken = "";
+        return this._fail("Couldn't reach the server. Please try again.");
+      }
+
+      if (res.ok) {
+        this._state = "done";
+        this._error = "";
+        this._turnstileToken = "";
+        this._render();
+        this.dispatchEvent(new CustomEvent("rsvp-submitted", { bubbles: true, composed: true }));
+        return;
+      }
+
+      let serverMsg = "";
+      try {
+        const body = await res.json();
+        if (body && typeof body.error === "string") serverMsg = body.error;
+      } catch {}
+      this._restoreInputs(name, email);
+      this._turnstileToken = "";
+      if (res.status >= 500) {
+        return this._fail(serverMsg || "Something went wrong on our end. Please try again in a moment.");
+      }
+      return this._fail(serverMsg || "Something looked off with that submission. Please check the fields.");
+    }
+
+    _restoreInputs(name, email) {
+      // The next render is in editing state; pre-seed values so they survive the re-render.
+      this._pendingName = name;
+      this._pendingEmail = email;
+    }
+
+    _fail(message) {
+      this._state = "error";
+      this._error = message;
+      this._render();
     }
   }
 
