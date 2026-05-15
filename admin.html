@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RSVPs · Melvin Lum</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-deep: #0a1422; --navy: #0f1d31; --navy-line: #1f3251;
+    --brass: #c89968; --brass-light: #e2c089;
+    --ivory: #f3ead7; --ivory-soft: #d8cdb4; --muted: #8a8068;
+  }
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color: var(--ivory); min-height: 100vh; padding: 32px;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  a { color: var(--brass-light); }
+
+  .gate { max-width: 420px; margin: 8vh auto 0; text-align: center; }
+  .gate h1 {
+    font-family: "Cormorant Garamond", serif; font-weight: 500;
+    font-size: 32px; margin: 0 0 24px;
+  }
+  .gate p { color: var(--ivory-soft); font-size: 14px; margin: 0 0 24px; }
+  .gate form { display: flex; flex-direction: column; gap: 14px; }
+  .gate label {
+    text-align: left; font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--brass);
+  }
+  .gate input {
+    background: transparent; border: 1px solid var(--navy-line);
+    color: var(--ivory); font: inherit; font-size: 14px;
+    padding: 12px 14px; outline: none;
+  }
+  .gate input:focus { border-color: var(--brass); }
+  .gate button {
+    background: var(--brass); color: var(--navy-deep); border: 0;
+    padding: 12px 18px; font: inherit; font-size: 11px;
+    letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; cursor: pointer;
+  }
+  .gate button:hover { background: var(--brass-light); }
+  .gate .err {
+    color: #d99c8a; font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; min-height: 16px; margin-top: 4px;
+  }
+
+  .panel { max-width: 1100px; margin: 0 auto; }
+  .panel-head {
+    display: flex; align-items: end; justify-content: space-between;
+    border-bottom: 1px solid var(--navy-line); padding-bottom: 18px; margin-bottom: 22px;
+    gap: 18px; flex-wrap: wrap;
+  }
+  .panel-head h1 {
+    font-family: "Cormorant Garamond", serif; font-weight: 500;
+    font-size: 28px; margin: 0;
+  }
+  .panel-head .stats { color: var(--ivory-soft); font-size: 13px; }
+  .panel-head .stats b { color: var(--brass-light); font-weight: 500; }
+  .panel-head button.export {
+    background: transparent; color: var(--brass-light);
+    border: 1px solid var(--brass); padding: 10px 16px;
+    font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer;
+  }
+  .panel-head button.export:hover { background: var(--brass); color: var(--navy-deep); }
+  .panel-head button.signout {
+    background: transparent; color: var(--ivory-soft);
+    border: 1px solid var(--navy-line); padding: 10px 14px;
+    font: inherit; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer;
+  }
+  .panel-head button.signout:hover { color: var(--brass-light); border-color: var(--brass); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td {
+    text-align: left; padding: 12px 10px;
+    border-bottom: 1px solid var(--navy-line); vertical-align: top;
+  }
+  th {
+    font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--brass); font-weight: 500;
+  }
+  td { font-size: 14px; color: var(--ivory); }
+  td.email { color: var(--ivory-soft); font-size: 13px; }
+  td.guests { color: var(--ivory-soft); font-size: 13px; }
+  td.size { color: var(--brass-light); font-variant-numeric: tabular-nums; }
+  td.when { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-style: italic; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<section class="gate" id="gate" aria-labelledby="gate-title">
+  <h1 id="gate-title">RSVP admin</h1>
+  <p>Paste the admin token to view submissions.</p>
+  <form id="gate-form" autocomplete="off">
+    <label for="tok">Admin token</label>
+    <input id="tok" type="password" autocomplete="off" autofocus required>
+    <button type="submit">Unlock</button>
+    <div class="err" id="err" role="alert"></div>
+  </form>
+</section>
+
+<section class="panel hidden" id="panel" aria-labelledby="panel-title">
+  <div class="panel-head">
+    <h1 id="panel-title">RSVPs</h1>
+    <div class="stats" id="stats"></div>
+    <div>
+      <button type="button" class="export" id="export">Export CSV</button>
+      <button type="button" class="signout" id="signout">Sign out</button>
+    </div>
+  </div>
+  <div id="table-wrap">
+    <div class="empty" id="empty">Loading…</div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const TOKEN_KEY = "melvin-memorial::admin-token";
+  const gate = document.getElementById("gate");
+  const panel = document.getElementById("panel");
+  const gateForm = document.getElementById("gate-form");
+  const tokInput = document.getElementById("tok");
+  const errEl = document.getElementById("err");
+  const statsEl = document.getElementById("stats");
+  const tableWrap = document.getElementById("table-wrap");
+  const exportBtn = document.getElementById("export");
+  const signOutBtn = document.getElementById("signout");
+
+  let cached = null;
+
+  async function load(token) {
+    const res = await fetch("/api/rsvps", {
+      headers: { Authorization: "Bearer " + token },
+    });
+    if (res.status === 401) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error("server_" + res.status);
+    return res.json();
+  }
+
+  function show(panelData) {
+    cached = panelData;
+    statsEl.innerHTML =
+      "<b>" + panelData.total_parties + "</b> parties · " +
+      "<b>" + panelData.total_attendees + "</b> attendees";
+
+    tableWrap.innerHTML = "";
+
+    if (!panelData.rsvps.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No RSVPs yet.";
+      tableWrap.appendChild(empty);
+      return;
+    }
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>When</th><th>Name</th><th>Email</th><th>Guests</th><th>Party</th></tr>";
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for (const r of panelData.rsvps) {
+      const tr = document.createElement("tr");
+
+      const tdWhen = document.createElement("td");
+      tdWhen.className = "when";
+      tdWhen.textContent = formatWhen(r.created_at);
+      tr.appendChild(tdWhen);
+
+      const tdName = document.createElement("td");
+      tdName.textContent = r.name;
+      tr.appendChild(tdName);
+
+      const tdEmail = document.createElement("td");
+      tdEmail.className = "email";
+      tdEmail.textContent = r.email;
+      tr.appendChild(tdEmail);
+
+      const tdGuests = document.createElement("td");
+      tdGuests.className = "guests";
+      tdGuests.textContent = (r.guest_names || []).join(", ");
+      tr.appendChild(tdGuests);
+
+      const tdSize = document.createElement("td");
+      tdSize.className = "size";
+      tdSize.textContent = String(r.party_size);
+      tr.appendChild(tdSize);
+
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+  }
+
+  function formatWhen(s) {
+    // SQLite datetime('now') returns "YYYY-MM-DD HH:MM:SS" in UTC
+    const d = new Date(s.replace(" ", "T") + "Z");
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleString();
+  }
+
+  function downloadCsv(panelData) {
+    const maxGuests = panelData.rsvps.reduce(
+      (m, r) => Math.max(m, (r.guest_names || []).length),
+      0
+    );
+    const headers = ["created_at", "name", "email", "party_size"];
+    for (let i = 1; i <= maxGuests; i++) headers.push("guest_" + i);
+    const rows = [headers];
+    for (const r of panelData.rsvps) {
+      const row = [r.created_at, r.name, r.email, String(r.party_size)];
+      for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
+      rows.push(row);
+    }
+    const csv = rows
+      .map((row) => row.map(csvEscape).join(","))
+      .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dt = new Date();
+    const yyyy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, "0");
+    const dd = String(dt.getDate()).padStart(2, "0");
+    a.href = url;
+    a.download = "rsvps-" + yyyy + "-" + mm + "-" + dd + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function csvEscape(v) {
+    const s = String(v ?? "");
+    if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function showGate(message) {
+    errEl.textContent = message ?? "";
+    panel.classList.add("hidden");
+    gate.classList.remove("hidden");
+    tokInput.value = "";
+    tokInput.focus();
+  }
+
+  function showPanel() {
+    gate.classList.add("hidden");
+    panel.classList.remove("hidden");
+  }
+
+  async function tryToken(token, isInitial) {
+    try {
+      const data = await load(token);
+      sessionStorage.setItem(TOKEN_KEY, token);
+      showPanel();
+      show(data);
+    } catch (err) {
+      if (err.message === "unauthorized") {
+        showGate(isInitial ? "" : "That token isn't right.");
+      } else {
+        showGate("Couldn't reach the server.");
+      }
+    }
+  }
+
+  gateForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const t = tokInput.value.trim();
+    if (!t) return;
+    tryToken(t, false);
+  });
+
+  exportBtn.addEventListener("click", () => {
+    if (cached) downloadCsv(cached);
+  });
+
+  signOutBtn.addEventListener("click", () => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    cached = null;
+    showGate();
+  });
+
+  const stored = sessionStorage.getItem(TOKEN_KEY);
+  if (stored) tryToken(stored, true);
+})();
+</script>
+
+</body>
+</html>
