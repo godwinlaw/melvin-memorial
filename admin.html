@@ -91,7 +91,68 @@
   td.guests { color: var(--ivory-soft); font-size: 13px; }
   td.size { color: var(--brass-light); font-variant-numeric: tabular-nums; }
   td.when { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  td.row-actions { white-space: nowrap; text-align: right; }
   .empty { text-align: center; color: var(--muted); padding: 40px 0; font-style: italic; }
+
+  .row-btn {
+    background: transparent; color: var(--ivory-soft);
+    border: 1px solid var(--navy-line); padding: 6px 10px;
+    font: inherit; font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; cursor: pointer; margin-left: 6px;
+  }
+  .row-btn:hover { color: var(--brass-light); border-color: var(--brass); }
+  .row-btn.danger:hover { color: #d99c8a; border-color: #d99c8a; }
+
+  dialog#edit-dlg {
+    background: var(--navy); color: var(--ivory);
+    border: 1px solid var(--navy-line); padding: 28px;
+    max-width: 460px; width: calc(100% - 48px);
+    font: inherit;
+  }
+  dialog#edit-dlg::backdrop { background: rgba(10, 20, 34, 0.7); }
+  dialog#edit-dlg h2 {
+    font-family: "Cormorant Garamond", serif; font-weight: 500;
+    font-size: 22px; margin: 0 0 18px;
+  }
+  dialog#edit-dlg form { display: flex; flex-direction: column; gap: 14px; }
+  dialog#edit-dlg label {
+    font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--brass);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  dialog#edit-dlg input,
+  dialog#edit-dlg textarea {
+    background: transparent; border: 1px solid var(--navy-line);
+    color: var(--ivory); font: inherit; font-size: 14px;
+    padding: 10px 12px; outline: none; letter-spacing: normal;
+    text-transform: none;
+  }
+  dialog#edit-dlg input:focus,
+  dialog#edit-dlg textarea:focus { border-color: var(--brass); }
+  dialog#edit-dlg textarea { min-height: 100px; resize: vertical; }
+  dialog#edit-dlg .hint {
+    font-size: 11px; letter-spacing: normal; text-transform: none;
+    color: var(--muted);
+  }
+  dialog#edit-dlg .err {
+    color: #d99c8a; font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; min-height: 16px;
+  }
+  dialog#edit-dlg .actions {
+    display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;
+  }
+  dialog#edit-dlg button {
+    background: transparent; color: var(--ivory-soft);
+    border: 1px solid var(--navy-line); padding: 10px 16px;
+    font: inherit; font-size: 11px; letter-spacing: 0.3em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  dialog#edit-dlg button[type="submit"] {
+    background: var(--brass); color: var(--navy-deep); border-color: var(--brass);
+    font-weight: 600;
+  }
+  dialog#edit-dlg button[type="submit"]:hover { background: var(--brass-light); border-color: var(--brass-light); }
+  dialog#edit-dlg button.cancel:hover { color: var(--brass-light); border-color: var(--brass); }
 
   .hidden { display: none !important; }
 </style>
@@ -123,6 +184,30 @@
   </div>
 </section>
 
+<dialog id="edit-dlg" aria-labelledby="edit-title">
+  <h2 id="edit-title">Edit RSVP</h2>
+  <form id="edit-form" autocomplete="off">
+    <label>
+      Name
+      <input id="edit-name" type="text" maxlength="80" required>
+    </label>
+    <label>
+      Email
+      <input id="edit-email" type="email" maxlength="120" required>
+    </label>
+    <label>
+      Guests
+      <textarea id="edit-guests" rows="4"></textarea>
+      <span class="hint">One name per line. Up to 10.</span>
+    </label>
+    <div class="err" id="edit-err" role="alert"></div>
+    <div class="actions">
+      <button type="button" class="cancel" id="edit-cancel">Cancel</button>
+      <button type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 (function () {
   const TOKEN_KEY = "melvin-memorial::admin-token";
@@ -136,7 +221,16 @@
   const exportBtn = document.getElementById("export");
   const signOutBtn = document.getElementById("signout");
 
+  const editDlg = document.getElementById("edit-dlg");
+  const editForm = document.getElementById("edit-form");
+  const editName = document.getElementById("edit-name");
+  const editEmail = document.getElementById("edit-email");
+  const editGuests = document.getElementById("edit-guests");
+  const editErr = document.getElementById("edit-err");
+  const editCancel = document.getElementById("edit-cancel");
+
   let cached = null;
+  let editingId = null;
 
   async function load(token) {
     const res = await fetch("/api/rsvps", {
@@ -173,13 +267,19 @@
 
     const table = document.createElement("table");
     const thead = document.createElement("thead");
-    thead.innerHTML =
-      "<tr><th>When</th><th>Name</th><th>Email</th><th>Guests</th><th>Party</th></tr>";
+    const headRow = document.createElement("tr");
+    for (const label of ["When", "Name", "Email", "Guests", "Party", ""]) {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
     for (const r of rsvps) {
       const tr = document.createElement("tr");
+      tr.dataset.id = String(r.id);
 
       const tdWhen = document.createElement("td");
       tdWhen.className = "when";
@@ -205,9 +305,26 @@
       tdSize.textContent = String(r.party_size);
       tr.appendChild(tdSize);
 
+      const tdActions = document.createElement("td");
+      tdActions.className = "row-actions";
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "row-btn";
+      editBtn.dataset.action = "edit";
+      editBtn.textContent = "Edit";
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "row-btn danger";
+      delBtn.dataset.action = "delete";
+      delBtn.textContent = "Remove";
+      tdActions.appendChild(editBtn);
+      tdActions.appendChild(delBtn);
+      tr.appendChild(tdActions);
+
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
+    tbody.addEventListener("click", onRowAction);
     tableWrap.appendChild(table);
   }
 
@@ -271,6 +388,147 @@
     panel.classList.remove("hidden");
   }
 
+  function getToken() {
+    return sessionStorage.getItem(TOKEN_KEY) ?? "";
+  }
+
+  function recomputeTotals() {
+    if (!cached) return;
+    const rsvps = Array.isArray(cached.rsvps) ? cached.rsvps : [];
+    cached.total_parties = rsvps.length;
+    cached.total_attendees = rsvps.reduce(
+      (sum, r) => sum + (Number(r.party_size) || 0),
+      0
+    );
+  }
+
+  function findRowIndex(id) {
+    if (!cached || !Array.isArray(cached.rsvps)) return -1;
+    return cached.rsvps.findIndex((r) => Number(r.id) === Number(id));
+  }
+
+  function handleAuthFailure() {
+    sessionStorage.removeItem(TOKEN_KEY);
+    cached = null;
+    editingId = null;
+    if (editDlg.open) editDlg.close();
+    showGate("Session expired — please sign in again.");
+  }
+
+  function onRowAction(e) {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const tr = btn.closest("tr[data-id]");
+    if (!tr) return;
+    const id = Number(tr.dataset.id);
+    if (!Number.isFinite(id)) return;
+    if (btn.dataset.action === "delete") {
+      deleteRow(id);
+    } else if (btn.dataset.action === "edit") {
+      openEdit(id);
+    }
+  }
+
+  async function deleteRow(id) {
+    const idx = findRowIndex(id);
+    if (idx < 0) return;
+    const r = cached.rsvps[idx];
+    if (!confirm("Remove RSVP from " + r.name + " (" + r.email + ")?")) return;
+    let res;
+    try {
+      res = await fetch("/api/rsvps/" + id, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + getToken() },
+      });
+    } catch {
+      alert("Couldn't reach the server.");
+      return;
+    }
+    if (res.status === 401) return handleAuthFailure();
+    if (res.status === 404) {
+      cached.rsvps.splice(idx, 1);
+      recomputeTotals();
+      show(cached);
+      return;
+    }
+    if (!res.ok) {
+      alert("Couldn't remove that RSVP.");
+      return;
+    }
+    cached.rsvps.splice(idx, 1);
+    recomputeTotals();
+    show(cached);
+  }
+
+  function openEdit(id) {
+    const idx = findRowIndex(id);
+    if (idx < 0) return;
+    const r = cached.rsvps[idx];
+    editingId = id;
+    editName.value = r.name;
+    editEmail.value = r.email;
+    editGuests.value = (r.guest_names || []).join("\n");
+    editErr.textContent = "";
+    editDlg.showModal();
+    editName.focus();
+  }
+
+  function parseGuestsTextarea() {
+    return editGuests.value
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  async function submitEdit(e) {
+    e.preventDefault();
+    if (editingId == null) return;
+    const idx = findRowIndex(editingId);
+    if (idx < 0) {
+      editDlg.close();
+      return;
+    }
+    const payload = {
+      name: editName.value.trim(),
+      email: editEmail.value.trim(),
+      guests: parseGuestsTextarea(),
+    };
+    editErr.textContent = "";
+    let res;
+    try {
+      res = await fetch("/api/rsvps/" + editingId, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + getToken(),
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      editErr.textContent = "Couldn't reach the server.";
+      return;
+    }
+    if (res.status === 401) {
+      editDlg.close();
+      return handleAuthFailure();
+    }
+    let data = null;
+    try { data = await res.json(); } catch {}
+    if (!res.ok) {
+      editErr.textContent = (data && data.error) || "Couldn't save changes.";
+      return;
+    }
+    const row = cached.rsvps[idx];
+    row.name = payload.name;
+    row.email = payload.email;
+    row.guest_names = payload.guests;
+    row.party_size = payload.guests.length + 1;
+    recomputeTotals();
+    show(cached);
+    editingId = null;
+    editDlg.close();
+  }
+
   async function tryToken(token, isInitial) {
     try {
       const data = await load(token);
@@ -300,7 +558,15 @@
   signOutBtn.addEventListener("click", () => {
     sessionStorage.removeItem(TOKEN_KEY);
     cached = null;
+    editingId = null;
+    if (editDlg.open) editDlg.close();
     showGate();
+  });
+
+  editForm.addEventListener("submit", submitEdit);
+  editCancel.addEventListener("click", () => {
+    editingId = null;
+    editDlg.close();
   });
 
   const stored = sessionStorage.getItem(TOKEN_KEY);

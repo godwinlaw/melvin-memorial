@@ -23,6 +23,13 @@ export default {
         return await handleListRsvps(request, env);
       }
 
+      const rsvpIdMatch = pathname.match(/^\/api\/rsvps\/(\d+)$/);
+      if (rsvpIdMatch) {
+        const id = Number(rsvpIdMatch[1]);
+        if (request.method === "PATCH") return await handleUpdateRsvp(request, env, id);
+        if (request.method === "DELETE") return await handleDeleteRsvp(request, env, id);
+      }
+
       return env.ASSETS.fetch(request);
     } catch (err) {
       console.error("worker_unhandled", err?.message ?? String(err));
@@ -74,7 +81,7 @@ async function handleCreateRsvp(request, env) {
   return jsonResponse({ ok: true }, 200);
 }
 
-function validateRsvp(body) {
+function validateRsvp(body, { requireTurnstile = true } = {}) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { error: "Body must be a JSON object" };
   }
@@ -101,6 +108,10 @@ function validateRsvp(body) {
   }
   if (guests.length > GUESTS_MAX) {
     return { error: `Please list at most ${GUESTS_MAX} additional guests.` };
+  }
+
+  if (!requireTurnstile) {
+    return { value: { name, email, guests } };
   }
 
   const turnstileToken =
@@ -143,12 +154,18 @@ async function verifyTurnstile(token, env, ip) {
   }
 }
 
-async function handleListRsvps(request, env) {
+async function requireAdmin(request, env) {
   const presented = parseBearer(request.headers.get("authorization"));
   const expected = env.ADMIN_TOKEN ?? "";
   if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
     return jsonResponse({ error: "Unauthorized" }, 401);
   }
+  return null;
+}
+
+async function handleListRsvps(request, env) {
+  const unauth = await requireAdmin(request, env);
+  if (unauth) return unauth;
 
   let rows;
   try {
@@ -185,6 +202,66 @@ async function handleListRsvps(request, env) {
     total_parties: rsvps.length,
     total_attendees: totalAttendees,
   });
+}
+
+async function handleUpdateRsvp(request, env, id) {
+  const unauth = await requireAdmin(request, env);
+  if (unauth) return unauth;
+
+  const ct = request.headers.get("content-type") ?? "";
+  if (!ct.toLowerCase().includes("application/json")) {
+    return jsonResponse({ error: "Expected application/json" }, 415);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid JSON" }, 400);
+  }
+
+  const validated = validateRsvp(body, { requireTurnstile: false });
+  if (validated.error) {
+    return jsonResponse({ error: validated.error }, 400);
+  }
+
+  const { name, email, guests } = validated.value;
+  const partySize = 1 + guests.length;
+
+  let result;
+  try {
+    result = await env.DB.prepare(
+      "UPDATE rsvps SET name = ?, email = ?, guest_names = ?, party_size = ? WHERE id = ?"
+    )
+      .bind(name, email, JSON.stringify(guests), partySize, id)
+      .run();
+  } catch (err) {
+    console.error("rsvp_update_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  if (!result.meta?.changes) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
+  return jsonResponse({ ok: true });
+}
+
+async function handleDeleteRsvp(request, env, id) {
+  const unauth = await requireAdmin(request, env);
+  if (unauth) return unauth;
+
+  let result;
+  try {
+    result = await env.DB.prepare("DELETE FROM rsvps WHERE id = ?").bind(id).run();
+  } catch (err) {
+    console.error("rsvp_delete_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  if (!result.meta?.changes) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
+  return jsonResponse({ ok: true });
 }
 
 function parseBearer(headerValue) {
