@@ -120,6 +120,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._error = "";
       this._turnstileToken = "";
       this._turnstileWidgetId = null;
+      this._mountGen = 0;
       this._root = this.attachShadow({ mode: "open" });
     }
 
@@ -137,10 +138,6 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._error = "";
       this._turnstileToken = "";
       this._render();
-      const nameEl = this._root.querySelector('input[name="name"]');
-      if (nameEl) nameEl.value = "";
-      const emailEl = this._root.querySelector('input[name="email"]');
-      if (emailEl) emailEl.value = "";
     }
 
     get _endpoint() {
@@ -172,7 +169,9 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
         return;
       }
 
+      const gen = ++this._mountGen;
       const tryRender = () => {
+        if (this._mountGen !== gen) return true; // superseded render, stop
         if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
         try {
           this._turnstileWidgetId = window.turnstile.render(mount, {
@@ -193,6 +192,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       // The Turnstile script may not have finished loading yet; retry briefly.
       const start = Date.now();
       const tick = () => {
+        if (this._mountGen !== gen) return; // superseded render, stop
         if (tryRender()) return;
         if (Date.now() - start < 5000) setTimeout(tick, 100);
       };
@@ -201,7 +201,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
     _removeTurnstile() {
       if (this._turnstileWidgetId && window.turnstile && typeof window.turnstile.remove === "function") {
-        try { window.turnstile.remove(this._turnstileWidgetId); } catch {}
+        try { window.turnstile.remove(this._turnstileWidgetId); } catch { /* widget may already be gone */ }
       }
       this._turnstileWidgetId = null;
     }
