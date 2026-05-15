@@ -17,7 +17,7 @@
     {
       "binding": "DB",
       "database_name": "melvin-rsvps",
-      "database_id": "REPLACE_AFTER_WRANGLER_D1_CREATE",
+      "database_id": "b0ca9789-a242-4c9a-9d14-b4aea283d16c",
       "migrations_dir": "migrations"
     }
   ]
