@@ -152,13 +152,18 @@
 
   function show(panelData) {
     cached = panelData;
+    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
+    const totalParties = Number(panelData?.total_parties) || rsvps.length;
+    const totalAttendees = Number(panelData?.total_attendees) || 0;
+
+    // both numeric values are coerced via Number above, so innerHTML is safe
     statsEl.innerHTML =
-      "<b>" + panelData.total_parties + "</b> parties · " +
-      "<b>" + panelData.total_attendees + "</b> attendees";
+      "<b>" + totalParties + "</b> parties · " +
+      "<b>" + totalAttendees + "</b> attendees";
 
     tableWrap.innerHTML = "";
 
-    if (!panelData.rsvps.length) {
+    if (!rsvps.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
       empty.textContent = "No RSVPs yet.";
@@ -173,7 +178,7 @@
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    for (const r of panelData.rsvps) {
+    for (const r of rsvps) {
       const tr = document.createElement("tr");
 
       const tdWhen = document.createElement("td");
@@ -214,14 +219,15 @@
   }
 
   function downloadCsv(panelData) {
-    const maxGuests = panelData.rsvps.reduce(
+    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
+    const maxGuests = rsvps.reduce(
       (m, r) => Math.max(m, (r.guest_names || []).length),
       0
     );
     const headers = ["created_at", "name", "email", "party_size"];
     for (let i = 1; i <= maxGuests; i++) headers.push("guest_" + i);
     const rows = [headers];
-    for (const r of panelData.rsvps) {
+    for (const r of rsvps) {
       const row = [r.created_at, r.name, r.email, String(r.party_size)];
       for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
       rows.push(row);
@@ -245,7 +251,9 @@
   }
 
   function csvEscape(v) {
-    const s = String(v ?? "");
+    let s = String(v ?? "");
+    // defuse Excel/Sheets formula-injection: prefix risky leading chars with a tab
+    if (/^[=+\-@\t\r]/.test(s)) s = "\t" + s;
     if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
   }
