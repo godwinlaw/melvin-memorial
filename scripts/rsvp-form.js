@@ -74,8 +74,6 @@ input.txt:disabled { opacity: 0.6; }
 .add:hover { color: var(--rsvp-accent); border-color: var(--rsvp-accent); }
 .add:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.turnstile { margin: 6px 0 14px; min-height: 65px; }
-
 button.submit {
   width: 100%; background: var(--rsvp-accent); color: #0a1422;
   border: 0; padding: 14px 22px; cursor: pointer;
@@ -119,8 +117,6 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._guests = [];
       this._error = "";
       this._turnstileToken = "";
-      this._turnstileWidgetId = null;
-      this._mountGen = 0;
       this._pendingName = "";
       this._pendingEmail = "";
       this._root = this.attachShadow({ mode: "open" });
@@ -128,10 +124,6 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
     connectedCallback() {
       this._render();
-    }
-
-    disconnectedCallback() {
-      this._removeTurnstile();
     }
 
     reset() {
@@ -144,6 +136,16 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._render();
     }
 
+    // Turnstile is mounted in light DOM by the page (its widget script can't
+    // safely run inside shadow DOM). The page calls these to relay the token.
+    setTurnstileToken(token) {
+      this._turnstileToken = String(token || "");
+    }
+
+    clearTurnstileToken() {
+      this._turnstileToken = "";
+    }
+
     get isDone() {
       return this._state === "done";
     }
@@ -152,66 +154,9 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       return this.getAttribute("endpoint") || "/api/rsvp";
     }
 
-    get _siteKey() {
-      // page is responsible for setting window.RSVP_TURNSTILE_SITE_KEY via scripts/rsvp-config.js
-      return (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
-    }
-
     _render() {
-      this._removeTurnstile();
       this._root.innerHTML = `<style>${css}</style><div class="wrap">${this._html()}</div>`;
       this._wireEvents();
-      this._mountTurnstile();
-    }
-
-    _mountTurnstile() {
-      if (this._state !== "editing" && this._state !== "error") return;
-      const mount = this._root.querySelector("[data-turnstile-mount]");
-      if (!mount) return;
-
-      const sitekey = this._siteKey;
-      if (!sitekey) {
-        mount.textContent = "Bot check unavailable (site key not configured).";
-        mount.style.color = "#d99c8a";
-        mount.style.fontSize = "12px";
-        return;
-      }
-
-      const gen = ++this._mountGen;
-      const tryRender = () => {
-        if (this._mountGen !== gen) return true; // superseded render, stop
-        if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
-        try {
-          this._turnstileWidgetId = window.turnstile.render(mount, {
-            sitekey,
-            callback: (token) => { this._turnstileToken = token; },
-            "error-callback": () => { this._turnstileToken = ""; },
-            "expired-callback": () => { this._turnstileToken = ""; },
-            theme: "dark",
-          });
-          return true;
-        } catch (err) {
-          console.error("turnstile render failed", err);
-          return false;
-        }
-      };
-
-      if (tryRender()) return;
-      // The Turnstile script may not have finished loading yet; retry briefly.
-      const start = Date.now();
-      const tick = () => {
-        if (this._mountGen !== gen) return; // superseded render, stop
-        if (tryRender()) return;
-        if (Date.now() - start < 5000) setTimeout(tick, 100);
-      };
-      setTimeout(tick, 100);
-    }
-
-    _removeTurnstile() {
-      if (this._turnstileWidgetId && window.turnstile && typeof window.turnstile.remove === "function") {
-        try { window.turnstile.remove(this._turnstileWidgetId); } catch { /* widget may already be gone */ }
-      }
-      this._turnstileWidgetId = null;
     }
 
     _html() {
@@ -278,8 +223,6 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
               + Add guest
             </button>
           </div>
-
-          <div class="turnstile" data-turnstile-mount></div>
 
           <button class="submit" type="submit"
                   ${isSubmitting ? "disabled" : ""}

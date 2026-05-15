@@ -146,6 +146,8 @@
   }
   .rsvp-close:hover { color: var(--brass-light); border-color: var(--brass); }
   .rsvp-dialog-inner { position: relative; }
+  .rsvp-turnstile { display: flex; justify-content: center; padding: 0 28px 16px; min-height: 65px; }
+  .rsvp-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 8px 28px 16px; text-align: center; }
 </style>
 </head>
 <body>
@@ -199,6 +201,7 @@
     <button type="button" class="rsvp-close" data-rsvp-close aria-label="Close">×</button>
     <rsvp-form id="memorial-rsvp" endpoint="/api/rsvp"
       style="--rsvp-ink: var(--ivory); --rsvp-ink-soft: var(--ivory-soft); --rsvp-accent: var(--brass); --rsvp-line: rgba(200,153,104,0.3); --rsvp-bg: transparent; --rsvp-serif: 'Cormorant Garamond', serif;"></rsvp-form>
+    <div class="rsvp-turnstile" id="rsvp-turnstile-mount"></div>
   </div>
 </dialog>
 
@@ -280,13 +283,53 @@
   (function () {
     const dialog = document.getElementById("rsvp-dialog");
     const form = document.getElementById("memorial-rsvp");
-    if (!dialog || !form) return;
+    const turnstileMount = document.getElementById("rsvp-turnstile-mount");
+    if (!dialog || !form || !turnstileMount) return;
+
+    const sitekey = (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
+    let widgetId = null;
+
+    function renderTurnstile() {
+      if (!sitekey) {
+        turnstileMount.textContent = "Bot check unavailable (site key not configured).";
+        turnstileMount.className = "rsvp-turnstile-fallback";
+        return;
+      }
+      if (widgetId !== null) {
+        try { window.turnstile.reset(widgetId); } catch {}
+        return;
+      }
+      const tryRender = () => {
+        if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
+        try {
+          widgetId = window.turnstile.render(turnstileMount, {
+            sitekey,
+            theme: "dark",
+            callback: (token) => form.setTurnstileToken(token),
+            "error-callback": () => form.clearTurnstileToken(),
+            "expired-callback": () => form.clearTurnstileToken(),
+          });
+          return true;
+        } catch (err) {
+          console.error("turnstile render failed", err);
+          return false;
+        }
+      };
+      if (tryRender()) return;
+      const start = Date.now();
+      const tick = () => {
+        if (tryRender()) return;
+        if (Date.now() - start < 5000) setTimeout(tick, 100);
+      };
+      setTimeout(tick, 100);
+    }
 
     document.querySelectorAll("[data-rsvp-open]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         if (typeof dialog.showModal === "function") dialog.showModal();
         else dialog.setAttribute("open", "");
+        renderTurnstile();
       });
     });
 
@@ -296,10 +339,19 @@
 
     dialog.addEventListener("close", () => {
       if (form.isDone) form.reset();
+      form.clearTurnstileToken();
+      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
+        try { window.turnstile.reset(widgetId); } catch {}
+      }
     });
 
     form.addEventListener("rsvp-submitted", () => {
-      // keep the dialog open so the user sees the thank-you state
+      // keep the dialog open so the user sees the thank-you state;
+      // the token was single-use, so reset for any subsequent submission
+      form.clearTurnstileToken();
+      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
+        try { window.turnstile.reset(widgetId); } catch {}
+      }
     });
   })();
 </script>
