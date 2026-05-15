@@ -11,7 +11,7 @@ wrangler d1 create melvin-rsvps
 
 The output ends with a JSON block that contains a `database_id`. Paste that
 UUID into `wrangler.jsonc`, replacing `REPLACE_AFTER_WRANGLER_D1_CREATE` in
-the `d1_databases` block.
+the `d1_databases` block. Save (and commit) `wrangler.jsonc` before proceeding to the next step — otherwise the deploy will use the placeholder and every D1 call will fail.
 
 ## 2. Apply the migration
 
@@ -40,6 +40,8 @@ wrangler secret put ADMIN_TOKEN
 You'll paste this same token into `admin.html` when you visit the admin
 page for the first time. It's stored in your browser's `sessionStorage`
 for the rest of that browsing session only.
+
+**To rotate the token later:** run `wrangler secret put ADMIN_TOKEN` again with a new value, then `wrangler deploy`. Old browser sessions will get a 401 on the next admin call and will be prompted for the new token.
 
 ## 4. Configure Cloudflare Turnstile (bot prevention)
 
