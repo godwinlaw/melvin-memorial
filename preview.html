@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Melvin Lum — In Honored Memory</title>
+<title>Melvin Lum — Family Preview</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
+<script>
+  if (sessionStorage.getItem("melvin-memorial::preview-unlocked") !== "1") {
+    location.replace("preview-login.html");
+  }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -19,6 +24,17 @@
   body { font-family: "Inter", system-ui, sans-serif; background: var(--navy-deep); color: var(--ivory); }
   .serif { font-family: "Cormorant Garamond", serif; font-weight: 500; }
   a { color: var(--brass-light); }
+
+  .preview-banner {
+    background: var(--brass);
+    color: var(--navy-deep);
+    text-align: center;
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
 
   .topbar { position: sticky; top: 0; z-index: 50; background: rgba(10,20,34,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--navy-line); }
   .topbar-inner { max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
@@ -106,6 +122,8 @@
 </head>
 <body>
 
+<div class="preview-banner">Family Preview · WIP sections visible</div>
+
 <header class="topbar">
   <div class="topbar-inner">
     <div class="crest">
@@ -114,6 +132,10 @@
     </div>
     <nav class="links">
       <a href="#service">Service</a>
+      <a href="#life">Life</a>
+      <a href="#timeline">Timeline</a>
+      <a href="#gallery">Photographs</a>
+      <a href="#lanterns">Lanterns</a>
     </nav>
   </div>
 </header>
@@ -147,8 +169,6 @@
   </div>
 </section>
 
-<!-- Sections below temporarily hidden until content is ready. To re-enable, remove the surrounding comment markers. -->
-<!--
 <section class="block bio" id="life">
   <div class="section-head">
     <div class="section-num">02</div>
@@ -200,21 +220,23 @@
   </div>
 </section>
 
-
 <section class="block lanterns" id="lanterns">
   <div class="section-head">
     <div class="section-num">05</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
-  <lantern-wall id="hg" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
+  <lantern-wall id="hg-preview" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
 </section>
--->
 
 <footer class="foot">
   <div class="foot-mark">L</div>
   <div class="foot-rule"></div>
   <div class="foot-links">
     <a href="#service">Service</a>
+    <a href="#life">Life</a>
+    <a href="#timeline">Timeline</a>
+    <a href="#gallery">Photographs</a>
+    <a href="#lanterns">Lanterns</a>
   </div>
   <div class="foot-rule"></div>
   <div class="foot-copy">In Honored Memory · Melvin's Family · MMXXVI</div>
