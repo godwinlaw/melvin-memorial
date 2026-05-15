@@ -1,5 +1,8 @@
 .DS_Store
 
+# Claude Code local workspace
+.claude/
+
 # wrangler files
 .wrangler
 .dev.vars*
