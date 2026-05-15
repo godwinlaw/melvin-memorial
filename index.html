@@ -319,11 +319,15 @@
       setTimeout(tick, 100);
     }
 
+    function showTurnstile() { turnstileMount.style.display = ""; }
+    function hideTurnstile() { turnstileMount.style.display = "none"; }
+
     document.querySelectorAll("[data-rsvp-open]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         if (typeof dialog.showModal === "function") dialog.showModal();
         else dialog.setAttribute("open", "");
+        showTurnstile();
         renderTurnstile();
       });
     });
@@ -341,12 +345,18 @@
     });
 
     form.addEventListener("rsvp-submitted", () => {
-      // keep the dialog open so the user sees the thank-you state;
-      // the token was single-use, so reset for any subsequent submission
+      // form is in the thank-you state; the widget is no longer relevant
+      hideTurnstile();
       form.clearTurnstileToken();
       if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
         try { window.turnstile.reset(widgetId); } catch {}
       }
+    });
+
+    // user clicked "Submit another RSVP" — bring the bot check back
+    form.addEventListener("rsvp-reset", () => {
+      showTurnstile();
+      renderTurnstile();
     });
   })();
 </script>
