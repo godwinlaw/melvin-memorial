@@ -113,14 +113,20 @@ function validateRsvp(body) {
 }
 
 async function verifyTurnstile(token, env, ip) {
-  const secret = env.TURNSTILE_SECRET_KEY || TURNSTILE_TEST_SECRET;
+  const secret = env.TURNSTILE_SECRET_KEY ?? TURNSTILE_TEST_SECRET;
   const form = new FormData();
   form.append("secret", secret);
   form.append("response", token);
   if (ip) form.append("remoteip", ip);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    const res = await fetch(TURNSTILE_VERIFY_URL, { method: "POST", body: form });
+    const res = await fetch(TURNSTILE_VERIFY_URL, {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
     if (!res.ok) {
       console.error("turnstile_http", res.status);
       return false;
@@ -132,6 +138,8 @@ async function verifyTurnstile(token, env, ip) {
   } catch (err) {
     console.error("turnstile_error", err?.message ?? String(err));
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
