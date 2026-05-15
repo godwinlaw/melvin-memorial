@@ -134,6 +134,7 @@ button.submit:disabled { opacity: 0.65; cursor: not-allowed; }
       this._pendingName = "";
       this._pendingEmail = "";
       this._render();
+      this.dispatchEvent(new CustomEvent("rsvp-reset", { bubbles: true, composed: true }));
     }
 
     // Turnstile is mounted in light DOM by the page (its widget script can't
