@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RSVPs · Melvin Lum</title>
+<title>Admin · Melvin Lum</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,7 +91,33 @@
   td.guests { color: var(--ivory-soft); font-size: 13px; }
   td.size { color: var(--brass-light); font-variant-numeric: tabular-nums; }
   td.when { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  td.role { color: var(--ivory-soft); font-size: 13px; }
+  td.msg { font-size: 13px; max-width: 360px; }
+  td.thumb img { width: 56px; height: 56px; object-fit: cover; display: block; border: 1px solid var(--navy-line); }
+  td.actions button {
+    background: transparent; color: #d99c8a;
+    border: 1px solid #6b3a30; padding: 7px 11px;
+    font: inherit; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; cursor: pointer;
+  }
+  td.actions button:hover { background: #d99c8a; color: var(--navy-deep); border-color: #d99c8a; }
+  td.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
   .empty { text-align: center; color: var(--muted); padding: 40px 0; font-style: italic; }
+
+  .tabs {
+    display: flex; gap: 0; margin-bottom: 22px;
+    border-bottom: 1px solid var(--navy-line);
+  }
+  .tabs button {
+    background: transparent; color: var(--ivory-soft); border: 0;
+    padding: 12px 20px; font: inherit; font-size: 11px;
+    letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tabs button:hover { color: var(--brass-light); }
+  .tabs button.active { color: var(--brass-light); border-bottom-color: var(--brass); }
+
+  .view { display: none; }
+  .view.active { display: block; }
 
   .hidden { display: none !important; }
 </style>
@@ -99,8 +125,8 @@
 <body>
 
 <section class="gate" id="gate" aria-labelledby="gate-title">
-  <h1 id="gate-title">RSVP admin</h1>
-  <p>Paste the admin token to view submissions.</p>
+  <h1 id="gate-title">Admin</h1>
+  <p>Paste the admin token to manage RSVPs and lanterns.</p>
   <form id="gate-form" autocomplete="off">
     <label for="tok">Admin token</label>
     <input id="tok" type="password" autocomplete="off" autofocus required>
@@ -111,15 +137,29 @@
 
 <section class="panel hidden" id="panel" aria-labelledby="panel-title">
   <div class="panel-head">
-    <h1 id="panel-title">RSVPs</h1>
+    <h1 id="panel-title">Admin</h1>
     <div class="stats" id="stats"></div>
     <div>
-      <button type="button" class="export" id="export">Export CSV</button>
+      <button type="button" class="export hidden" id="export">Export CSV</button>
       <button type="button" class="signout" id="signout">Sign out</button>
     </div>
   </div>
-  <div id="table-wrap">
-    <div class="empty" id="empty">Loading…</div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="active" data-tab="rsvps" role="tab" aria-selected="true">RSVPs</button>
+    <button type="button" data-tab="lanterns" role="tab" aria-selected="false">Lanterns</button>
+  </div>
+
+  <div class="view active" id="view-rsvps" role="tabpanel">
+    <div id="rsvps-wrap">
+      <div class="empty" id="rsvps-empty">Loading…</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-lanterns" role="tabpanel">
+    <div id="lanterns-wrap">
+      <div class="empty" id="lanterns-empty">Loading…</div>
+    </div>
   </div>
 </section>
 
@@ -132,16 +172,29 @@
   const tokInput = document.getElementById("tok");
   const errEl = document.getElementById("err");
   const statsEl = document.getElementById("stats");
-  const tableWrap = document.getElementById("table-wrap");
   const exportBtn = document.getElementById("export");
   const signOutBtn = document.getElementById("signout");
+  const tabBtns = panel.querySelectorAll("[data-tab]");
+  const views = {
+    rsvps: document.getElementById("view-rsvps"),
+    lanterns: document.getElementById("view-lanterns"),
+  };
+  const wraps = {
+    rsvps: document.getElementById("rsvps-wrap"),
+    lanterns: document.getElementById("lanterns-wrap"),
+  };
 
-  let cached = null;
+  let token = "";
+  let activeTab = "rsvps";
+  let rsvpData = null;
+  let lanternData = null;
 
-  async function load(token) {
-    const res = await fetch("/api/rsvps", {
-      headers: { Authorization: "Bearer " + token },
-    });
+  function authHeaders() {
+    return { Authorization: "Bearer " + token };
+  }
+
+  async function fetchJson(url, init) {
+    const res = await fetch(url, init);
     if (res.status === 401) {
       sessionStorage.removeItem(TOKEN_KEY);
       throw new Error("unauthorized");
@@ -150,76 +203,161 @@
     return res.json();
   }
 
-  function show(panelData) {
-    cached = panelData;
-    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
-    const totalParties = Number(panelData?.total_parties) || rsvps.length;
-    const totalAttendees = Number(panelData?.total_attendees) || 0;
+  async function loadRsvps() {
+    rsvpData = await fetchJson("/api/rsvps", { headers: authHeaders() });
+    renderRsvps();
+    if (activeTab === "rsvps") updateStats();
+  }
 
-    // both numeric values are coerced via Number above, so innerHTML is safe
-    statsEl.innerHTML =
-      "<b>" + totalParties + "</b> parties · " +
-      "<b>" + totalAttendees + "</b> attendees";
+  async function loadLanterns() {
+    lanternData = await fetchJson("/api/lanterns");
+    renderLanterns();
+    if (activeTab === "lanterns") updateStats();
+  }
 
-    tableWrap.innerHTML = "";
+  function updateStats() {
+    if (activeTab === "rsvps" && rsvpData) {
+      const totalParties = Number(rsvpData?.total_parties) || (rsvpData.rsvps || []).length;
+      const totalAttendees = Number(rsvpData?.total_attendees) || 0;
+      // both values coerced via Number above, so innerHTML is safe
+      statsEl.innerHTML =
+        "<b>" + totalParties + "</b> parties · " +
+        "<b>" + totalAttendees + "</b> attendees";
+      exportBtn.classList.remove("hidden");
+    } else if (activeTab === "lanterns" && lanternData) {
+      const total = (lanternData.lanterns || []).length;
+      statsEl.innerHTML = "<b>" + total + "</b> lanterns";
+      exportBtn.classList.add("hidden");
+    } else {
+      statsEl.textContent = "";
+      exportBtn.classList.add("hidden");
+    }
+  }
 
+  function renderRsvps() {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    wraps.rsvps.innerHTML = "";
     if (!rsvps.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
       empty.textContent = "No RSVPs yet.";
-      tableWrap.appendChild(empty);
+      wraps.rsvps.appendChild(empty);
       return;
     }
-
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     thead.innerHTML =
       "<tr><th>When</th><th>Name</th><th>Email</th><th>Guests</th><th>Party</th></tr>";
     table.appendChild(thead);
-
     const tbody = document.createElement("tbody");
     for (const r of rsvps) {
       const tr = document.createElement("tr");
+      tr.appendChild(td("when", formatWhen(r.created_at)));
+      tr.appendChild(td("", r.name));
+      tr.appendChild(td("email", r.email));
+      tr.appendChild(td("guests", (r.guest_names || []).join(", ")));
+      tr.appendChild(td("size", String(r.party_size)));
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wraps.rsvps.appendChild(table);
+  }
 
-      const tdWhen = document.createElement("td");
-      tdWhen.className = "when";
-      tdWhen.textContent = formatWhen(r.created_at);
-      tr.appendChild(tdWhen);
+  function renderLanterns() {
+    const lanterns = Array.isArray(lanternData?.lanterns) ? lanternData.lanterns : [];
+    wraps.lanterns.innerHTML = "";
+    if (!lanterns.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No lanterns yet.";
+      wraps.lanterns.appendChild(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>When</th><th>Name</th><th>Role</th><th>Message</th><th>Photo</th><th></th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const r of lanterns) {
+      const tr = document.createElement("tr");
+      tr.appendChild(td("when", formatWhen(r.created_at)));
+      tr.appendChild(td("", r.name));
+      tr.appendChild(td("role", r.role || ""));
+      tr.appendChild(td("msg", truncate(r.msg || "", 220)));
 
-      const tdName = document.createElement("td");
-      tdName.textContent = r.name;
-      tr.appendChild(tdName);
+      const tdThumb = document.createElement("td");
+      tdThumb.className = "thumb";
+      if (r.media_key) {
+        const img = document.createElement("img");
+        img.src = "/media/" + r.media_key;
+        img.alt = "";
+        img.loading = "lazy";
+        tdThumb.appendChild(img);
+      }
+      tr.appendChild(tdThumb);
 
-      const tdEmail = document.createElement("td");
-      tdEmail.className = "email";
-      tdEmail.textContent = r.email;
-      tr.appendChild(tdEmail);
-
-      const tdGuests = document.createElement("td");
-      tdGuests.className = "guests";
-      tdGuests.textContent = (r.guest_names || []).join(", ");
-      tr.appendChild(tdGuests);
-
-      const tdSize = document.createElement("td");
-      tdSize.className = "size";
-      tdSize.textContent = String(r.party_size);
-      tr.appendChild(tdSize);
+      const tdAct = document.createElement("td");
+      tdAct.className = "actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Delete";
+      btn.addEventListener("click", () => deleteLantern(r.id, btn));
+      tdAct.appendChild(btn);
+      tr.appendChild(tdAct);
 
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    tableWrap.appendChild(table);
+    wraps.lanterns.appendChild(table);
+  }
+
+  async function deleteLantern(id, btn) {
+    if (!confirm("Delete this lantern? This cannot be undone.")) return;
+    btn.disabled = true;
+    btn.textContent = "Deleting…";
+    try {
+      const res = await fetch("/api/lanterns/" + encodeURIComponent(id), {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        showGate("Session expired.");
+        return;
+      }
+      if (!res.ok) throw new Error("server_" + res.status);
+      lanternData.lanterns = (lanternData.lanterns || []).filter((l) => l.id !== id);
+      renderLanterns();
+      updateStats();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "Delete";
+      alert("Couldn't delete that lantern. Try again.");
+    }
+  }
+
+  function td(cls, text) {
+    const el = document.createElement("td");
+    if (cls) el.className = cls;
+    el.textContent = text;
+    return el;
+  }
+
+  function truncate(s, n) {
+    if (s.length <= n) return s;
+    return s.slice(0, n).trimEnd() + "…";
   }
 
   function formatWhen(s) {
     // SQLite datetime('now') returns "YYYY-MM-DD HH:MM:SS" in UTC
-    const d = new Date(s.replace(" ", "T") + "Z");
+    const d = new Date(String(s).replace(" ", "T") + "Z");
     if (isNaN(d.getTime())) return s;
     return d.toLocaleString();
   }
 
-  function downloadCsv(panelData) {
-    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
+  function downloadRsvpCsv() {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
     const maxGuests = rsvps.reduce(
       (m, r) => Math.max(m, (r.guest_names || []).length),
       0
@@ -232,9 +370,7 @@
       for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
       rows.push(row);
     }
-    const csv = rows
-      .map((row) => row.map(csvEscape).join(","))
-      .join("\r\n");
+    const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -252,7 +388,6 @@
 
   function csvEscape(v) {
     let s = String(v ?? "");
-    // defuse Excel/Sheets formula-injection: prefix risky leading chars with a tab
     if (/^[=+\-@\t\r]/.test(s)) s = "\t" + s;
     if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
@@ -271,13 +406,35 @@
     panel.classList.remove("hidden");
   }
 
-  async function tryToken(token, isInitial) {
+  function activateTab(tab) {
+    activeTab = tab;
+    tabBtns.forEach((b) => {
+      const on = b.dataset.tab === tab;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    Object.entries(views).forEach(([k, el]) => {
+      el.classList.toggle("active", k === tab);
+    });
+    updateStats();
+    if (tab === "lanterns" && !lanternData) {
+      loadLanterns().catch((err) => {
+        if (err.message === "unauthorized") showGate("Session expired.");
+        else wraps.lanterns.innerHTML = '<div class="empty">Couldn\\u2019t load lanterns.</div>';
+      });
+    }
+  }
+
+  async function tryToken(t, isInitial) {
     try {
-      const data = await load(token);
-      sessionStorage.setItem(TOKEN_KEY, token);
+      // Validate the token by hitting /api/rsvps (gated). Lanterns load lazily on tab switch.
+      token = t;
+      await loadRsvps();
+      sessionStorage.setItem(TOKEN_KEY, t);
       showPanel();
-      show(data);
+      activateTab(activeTab);
     } catch (err) {
+      token = "";
       if (err.message === "unauthorized") {
         showGate(isInitial ? "" : "That token isn't right.");
       } else {
@@ -294,13 +451,19 @@
   });
 
   exportBtn.addEventListener("click", () => {
-    if (cached) downloadCsv(cached);
+    if (activeTab === "rsvps" && rsvpData) downloadRsvpCsv();
   });
 
   signOutBtn.addEventListener("click", () => {
     sessionStorage.removeItem(TOKEN_KEY);
-    cached = null;
+    token = "";
+    rsvpData = null;
+    lanternData = null;
     showGate();
+  });
+
+  tabBtns.forEach((b) => {
+    b.addEventListener("click", () => activateTab(b.dataset.tab));
   });
 
   const stored = sessionStorage.getItem(TOKEN_KEY);
