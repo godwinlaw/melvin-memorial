@@ -4,17 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A static memorial site for Captain Melvin Lum. `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). There is no build step, no package manager, no tests — serve the directory with any static server (`python3 -m http.server`, `npx serve`, etc.).
+A memorial site for Captain Melvin Lum, deployed as a Cloudflare Worker (`wrangler.jsonc`, `src/worker.js`). `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). The Worker also exposes `/api/rsvp` (POST, public + Turnstile), `/api/rsvps` (GET, admin), `/api/lanterns` (GET public; POST gated by post password + Turnstile; DELETE :id admin), and `/media/:key` (GET public, R2-backed).
 
-The gate is **cosmetic, not access control**: the password's SHA-256 lives in `login.html`, but anyone who reads the JS can bypass the check (e.g., set the unlock flag in DevTools). For real protection, use hosting-layer auth (Cloudflare Access, basic auth, etc.). To rotate the password, replace the `PASSWORD_HASH` constant in `login.html` with the new SHA-256 hex (`printf '%s' 'newpassword' | shasum -a 256`).
+There is no client build step. Static assets are served via the Worker's `ASSETS` binding; the Worker code itself is plain ES module that wrangler ships as-is. Local dev: `wrangler dev` (apply migrations first with `wrangler d1 migrations apply melvin-rsvps --local`).
+
+### Three independent secrets
+
+- **Site-unlock password** — SHA-256 hash baked into `login.html`. Cosmetic; anyone reading JS can bypass.
+- **`POST_PASSWORD`** (Worker secret) — required to submit a lantern. Cached client-side in `sessionStorage` under `lantern-wall::post-password`. Constant-time-compared in the Worker.
+- **`ADMIN_TOKEN`** (Worker secret) — Bearer token for `/admin`, used by both `/api/rsvps` and `DELETE /api/lanterns/:id`. Cached client-side under `melvin-memorial::admin-token`.
+
+To rotate any of them, see `docs/RSVP_SETUP.md`.
 
 ## Layout
 
 ```
 index.html  the memorial, served at / — page-specific styles inline, content sections, custom-element instances
 login.html  password gate — redirects to / on unlock
+admin.html  token-gated panel for RSVPs + Lanterns; tabs share the same Bearer token
+src/worker.js   Cloudflare Worker — API routes + ASSETS fallback
+migrations/     D1 SQL migrations (rsvps + lanterns)
 styles/shared.css  cross-section primitives (.block, .section-head, .gal-grid, .vid-grid, .tl-rail, .notify-form)
-scripts/           two custom elements, no framework, no module system (loaded as plain <script>)
+scripts/        custom elements + rsvp config, no framework, no module system (loaded as plain <script>)
 ```
 
 `shared.css` borders use `currentColor` so each section inherits the page theme via the parent's `color` — don't hard-code border colors there.
@@ -37,7 +48,11 @@ Drag-and-drop image placeholder. **Persistence model is non-obvious and load-bea
 
 ### `<lantern-wall>` — `scripts/lantern-wall.js`
 
-Persistent message wall (text + photo/video) with a focus view. Storage is **`localStorage`**, keyed `lantern-wall::<id-or-pathname>` — entirely separate from the image-slot sidecar mechanism. Ships with seed messages embedded in the source.
+Server-backed message wall (text + photo) with a focus view. Reads from `GET /api/lanterns`, posts to `POST /api/lanterns` (multipart) with `X-Post-Password` header + a Turnstile token relayed from the host page via `setTurnstileToken(token)`. Photos go to R2 (8MB cap, image MIME types only); the Worker serves them back at `/media/<key>` with long cache headers. The element dispatches `lantern-needs-turnstile` on connect and after errors, and `lantern-submitted` on success — the host page in `index.html` listens for both to render/reset the Turnstile widget in light DOM (the widget can't run inside shadow DOM). Seed messages live in `migrations/0003_seed_lanterns.sql`, not in the JS.
+
+### `<rsvp-form>` — `scripts/rsvp-form.js`
+
+Autonomous custom element for the RSVP dialog. Same Turnstile-light-DOM pattern as `<lantern-wall>` (`setTurnstileToken` / `clearTurnstileToken`). POSTs JSON to `/api/rsvp`. Site key in `scripts/rsvp-config.js`; secret + DB in Worker env.
 
 ## When editing
 

@@ -1,24 +1,35 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "melvin-memorial",
-  "compatibility_date": "2026-05-12",
-  "main": "src/worker.js",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": ".",
-    "binding": "ASSETS"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "melvin-rsvps",
-      "database_id": "b0ca9789-a242-4c9a-9d14-b4aea283d16c",
-      "migrations_dir": "migrations"
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "melvin-memorial",
+	"compatibility_date": "2026-05-12",
+	"main": "src/worker.js",
+	"observability": {
+		"enabled": true
+	},
+	"assets": {
+		"directory": ".",
+		"binding": "ASSETS"
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "melvin-rsvps",
+			"database_id": "b0ca9789-a242-4c9a-9d14-b4aea283d16c",
+			"migrations_dir": "migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "melvin-lanterns"
+		},
+		{
+			"bucket_name": "melvin-lanterns",
+			"binding": "melvin_lanterns",
+			"remote": true
+		}
+	]
 }

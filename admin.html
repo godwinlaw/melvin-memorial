@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RSVPs · Melvin Lum</title>
+<title>Admin · Melvin Lum</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,8 +91,17 @@
   td.guests { color: var(--ivory-soft); font-size: 13px; }
   td.size { color: var(--brass-light); font-variant-numeric: tabular-nums; }
   td.when { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  td.role { color: var(--ivory-soft); font-size: 13px; }
+  td.msg { font-size: 13px; max-width: 360px; }
+  td.thumb img { width: 56px; height: 56px; object-fit: cover; display: block; border: 1px solid var(--navy-line); }
+  td.actions button {
+    background: transparent; color: #d99c8a;
+    border: 1px solid #6b3a30; padding: 7px 11px;
+    font: inherit; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; cursor: pointer;
+  }
+  td.actions button:hover { background: #d99c8a; color: var(--navy-deep); border-color: #d99c8a; }
+  td.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
   td.row-actions { white-space: nowrap; text-align: right; }
-  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-style: italic; }
 
   .row-btn {
     background: transparent; color: var(--ivory-soft);
@@ -141,18 +150,35 @@
   dialog#edit-dlg .actions {
     display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px;
   }
-  dialog#edit-dlg button {
+  dialog#edit-dlg .actions button {
     background: transparent; color: var(--ivory-soft);
     border: 1px solid var(--navy-line); padding: 10px 16px;
     font: inherit; font-size: 11px; letter-spacing: 0.3em;
     text-transform: uppercase; cursor: pointer;
   }
-  dialog#edit-dlg button[type="submit"] {
+  dialog#edit-dlg .actions button[type="submit"] {
     background: var(--brass); color: var(--navy-deep); border-color: var(--brass);
     font-weight: 600;
   }
-  dialog#edit-dlg button[type="submit"]:hover { background: var(--brass-light); border-color: var(--brass-light); }
-  dialog#edit-dlg button.cancel:hover { color: var(--brass-light); border-color: var(--brass); }
+  dialog#edit-dlg .actions button[type="submit"]:hover { background: var(--brass-light); border-color: var(--brass-light); }
+  dialog#edit-dlg .actions button.cancel:hover { color: var(--brass-light); border-color: var(--brass); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-style: italic; }
+
+  .tabs {
+    display: flex; gap: 0; margin-bottom: 22px;
+    border-bottom: 1px solid var(--navy-line);
+  }
+  .tabs button {
+    background: transparent; color: var(--ivory-soft); border: 0;
+    padding: 12px 20px; font: inherit; font-size: 11px;
+    letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tabs button:hover { color: var(--brass-light); }
+  .tabs button.active { color: var(--brass-light); border-bottom-color: var(--brass); }
+
+  .view { display: none; }
+  .view.active { display: block; }
 
   .hidden { display: none !important; }
 </style>
@@ -160,8 +186,8 @@
 <body>
 
 <section class="gate" id="gate" aria-labelledby="gate-title">
-  <h1 id="gate-title">RSVP admin</h1>
-  <p>Paste the admin token to view submissions.</p>
+  <h1 id="gate-title">Admin</h1>
+  <p>Paste the admin token to manage RSVPs and lanterns.</p>
   <form id="gate-form" autocomplete="off">
     <label for="tok">Admin token</label>
     <input id="tok" type="password" autocomplete="off" autofocus required>
@@ -172,15 +198,29 @@
 
 <section class="panel hidden" id="panel" aria-labelledby="panel-title">
   <div class="panel-head">
-    <h1 id="panel-title">RSVPs</h1>
+    <h1 id="panel-title">Admin</h1>
     <div class="stats" id="stats"></div>
     <div>
-      <button type="button" class="export" id="export">Export CSV</button>
+      <button type="button" class="export hidden" id="export">Export CSV</button>
       <button type="button" class="signout" id="signout">Sign out</button>
     </div>
   </div>
-  <div id="table-wrap">
-    <div class="empty" id="empty">Loading…</div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" class="active" data-tab="rsvps" role="tab" aria-selected="true">RSVPs</button>
+    <button type="button" data-tab="lanterns" role="tab" aria-selected="false">Lanterns</button>
+  </div>
+
+  <div class="view active" id="view-rsvps" role="tabpanel">
+    <div id="rsvps-wrap">
+      <div class="empty" id="rsvps-empty">Loading…</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-lanterns" role="tabpanel">
+    <div id="lanterns-wrap">
+      <div class="empty" id="lanterns-empty">Loading…</div>
+    </div>
   </div>
 </section>
 
@@ -217,9 +257,17 @@
   const tokInput = document.getElementById("tok");
   const errEl = document.getElementById("err");
   const statsEl = document.getElementById("stats");
-  const tableWrap = document.getElementById("table-wrap");
   const exportBtn = document.getElementById("export");
   const signOutBtn = document.getElementById("signout");
+  const tabBtns = panel.querySelectorAll("[data-tab]");
+  const views = {
+    rsvps: document.getElementById("view-rsvps"),
+    lanterns: document.getElementById("view-lanterns"),
+  };
+  const wraps = {
+    rsvps: document.getElementById("rsvps-wrap"),
+    lanterns: document.getElementById("lanterns-wrap"),
+  };
 
   const editDlg = document.getElementById("edit-dlg");
   const editForm = document.getElementById("edit-form");
@@ -229,13 +277,18 @@
   const editErr = document.getElementById("edit-err");
   const editCancel = document.getElementById("edit-cancel");
 
-  let cached = null;
+  let token = "";
+  let activeTab = "rsvps";
+  let rsvpData = null;
+  let lanternData = null;
   let editingId = null;
 
-  async function load(token) {
-    const res = await fetch("/api/rsvps", {
-      headers: { Authorization: "Bearer " + token },
-    });
+  function authHeaders() {
+    return { Authorization: "Bearer " + token };
+  }
+
+  async function fetchJson(url, init) {
+    const res = await fetch(url, init);
     if (res.status === 401) {
       sessionStorage.removeItem(TOKEN_KEY);
       throw new Error("unauthorized");
@@ -244,27 +297,47 @@
     return res.json();
   }
 
-  function show(panelData) {
-    cached = panelData;
-    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
-    const totalParties = Number(panelData?.total_parties) || rsvps.length;
-    const totalAttendees = Number(panelData?.total_attendees) || 0;
+  async function loadRsvps() {
+    rsvpData = await fetchJson("/api/rsvps", { headers: authHeaders() });
+    renderRsvps();
+    if (activeTab === "rsvps") updateStats();
+  }
 
-    // both numeric values are coerced via Number above, so innerHTML is safe
-    statsEl.innerHTML =
-      "<b>" + totalParties + "</b> parties · " +
-      "<b>" + totalAttendees + "</b> attendees";
+  async function loadLanterns() {
+    lanternData = await fetchJson("/api/lanterns");
+    renderLanterns();
+    if (activeTab === "lanterns") updateStats();
+  }
 
-    tableWrap.innerHTML = "";
+  function updateStats() {
+    if (activeTab === "rsvps" && rsvpData) {
+      const totalParties = Number(rsvpData?.total_parties) || (rsvpData.rsvps || []).length;
+      const totalAttendees = Number(rsvpData?.total_attendees) || 0;
+      // both values coerced via Number above, so innerHTML is safe
+      statsEl.innerHTML =
+        "<b>" + totalParties + "</b> parties · " +
+        "<b>" + totalAttendees + "</b> attendees";
+      exportBtn.classList.remove("hidden");
+    } else if (activeTab === "lanterns" && lanternData) {
+      const total = (lanternData.lanterns || []).length;
+      statsEl.innerHTML = "<b>" + total + "</b> lanterns";
+      exportBtn.classList.add("hidden");
+    } else {
+      statsEl.textContent = "";
+      exportBtn.classList.add("hidden");
+    }
+  }
 
+  function renderRsvps() {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    wraps.rsvps.innerHTML = "";
     if (!rsvps.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
       empty.textContent = "No RSVPs yet.";
-      tableWrap.appendChild(empty);
+      wraps.rsvps.appendChild(empty);
       return;
     }
-
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
@@ -275,35 +348,15 @@
     }
     thead.appendChild(headRow);
     table.appendChild(thead);
-
     const tbody = document.createElement("tbody");
     for (const r of rsvps) {
       const tr = document.createElement("tr");
       tr.dataset.id = String(r.id);
-
-      const tdWhen = document.createElement("td");
-      tdWhen.className = "when";
-      tdWhen.textContent = formatWhen(r.created_at);
-      tr.appendChild(tdWhen);
-
-      const tdName = document.createElement("td");
-      tdName.textContent = r.name;
-      tr.appendChild(tdName);
-
-      const tdEmail = document.createElement("td");
-      tdEmail.className = "email";
-      tdEmail.textContent = r.email;
-      tr.appendChild(tdEmail);
-
-      const tdGuests = document.createElement("td");
-      tdGuests.className = "guests";
-      tdGuests.textContent = (r.guest_names || []).join(", ");
-      tr.appendChild(tdGuests);
-
-      const tdSize = document.createElement("td");
-      tdSize.className = "size";
-      tdSize.textContent = String(r.party_size);
-      tr.appendChild(tdSize);
+      tr.appendChild(td("when", formatWhen(r.created_at)));
+      tr.appendChild(td("", r.name));
+      tr.appendChild(td("email", r.email));
+      tr.appendChild(td("guests", (r.guest_names || []).join(", ")));
+      tr.appendChild(td("size", String(r.party_size)));
 
       const tdActions = document.createElement("td");
       tdActions.className = "row-actions";
@@ -324,19 +377,229 @@
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
-    tbody.addEventListener("click", onRowAction);
-    tableWrap.appendChild(table);
+    tbody.addEventListener("click", onRsvpRowAction);
+    wraps.rsvps.appendChild(table);
+  }
+
+  function recomputeRsvpTotals() {
+    if (!rsvpData) return;
+    const rsvps = Array.isArray(rsvpData.rsvps) ? rsvpData.rsvps : [];
+    rsvpData.total_parties = rsvps.length;
+    rsvpData.total_attendees = rsvps.reduce(
+      (sum, r) => sum + (Number(r.party_size) || 0),
+      0
+    );
+  }
+
+  function findRsvpIndex(id) {
+    if (!rsvpData || !Array.isArray(rsvpData.rsvps)) return -1;
+    return rsvpData.rsvps.findIndex((r) => Number(r.id) === Number(id));
+  }
+
+  function onRsvpRowAction(e) {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const tr = btn.closest("tr[data-id]");
+    if (!tr) return;
+    const id = Number(tr.dataset.id);
+    if (!Number.isFinite(id)) return;
+    if (btn.dataset.action === "delete") deleteRsvp(id);
+    else if (btn.dataset.action === "edit") openEditRsvp(id);
+  }
+
+  async function deleteRsvp(id) {
+    const idx = findRsvpIndex(id);
+    if (idx < 0) return;
+    const r = rsvpData.rsvps[idx];
+    if (!confirm("Remove RSVP from " + r.name + " (" + r.email + ")?")) return;
+    let res;
+    try {
+      res = await fetch("/api/rsvps/" + id, { method: "DELETE", headers: authHeaders() });
+    } catch {
+      alert("Couldn't reach the server.");
+      return;
+    }
+    if (res.status === 401) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      token = "";
+      showGate("Session expired.");
+      return;
+    }
+    if (!res.ok && res.status !== 404) {
+      alert("Couldn't remove that RSVP.");
+      return;
+    }
+    rsvpData.rsvps.splice(idx, 1);
+    recomputeRsvpTotals();
+    renderRsvps();
+    if (activeTab === "rsvps") updateStats();
+  }
+
+  function openEditRsvp(id) {
+    const idx = findRsvpIndex(id);
+    if (idx < 0) return;
+    const r = rsvpData.rsvps[idx];
+    editingId = id;
+    editName.value = r.name;
+    editEmail.value = r.email;
+    editGuests.value = (r.guest_names || []).join("\n");
+    editErr.textContent = "";
+    editDlg.showModal();
+    editName.focus();
+  }
+
+  function parseGuestsTextarea() {
+    return editGuests.value
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  async function submitEditRsvp(e) {
+    e.preventDefault();
+    if (editingId == null) return;
+    const idx = findRsvpIndex(editingId);
+    if (idx < 0) {
+      editDlg.close();
+      return;
+    }
+    const payload = {
+      name: editName.value.trim(),
+      email: editEmail.value.trim(),
+      guests: parseGuestsTextarea(),
+    };
+    editErr.textContent = "";
+    let res;
+    try {
+      res = await fetch("/api/rsvps/" + editingId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      editErr.textContent = "Couldn't reach the server.";
+      return;
+    }
+    if (res.status === 401) {
+      editDlg.close();
+      sessionStorage.removeItem(TOKEN_KEY);
+      token = "";
+      showGate("Session expired.");
+      return;
+    }
+    let data = null;
+    try { data = await res.json(); } catch {}
+    if (!res.ok) {
+      editErr.textContent = (data && data.error) || "Couldn't save changes.";
+      return;
+    }
+    const row = rsvpData.rsvps[idx];
+    row.name = payload.name;
+    row.email = payload.email;
+    row.guest_names = payload.guests;
+    row.party_size = payload.guests.length + 1;
+    recomputeRsvpTotals();
+    renderRsvps();
+    if (activeTab === "rsvps") updateStats();
+    editingId = null;
+    editDlg.close();
+  }
+
+  function renderLanterns() {
+    const lanterns = Array.isArray(lanternData?.lanterns) ? lanternData.lanterns : [];
+    wraps.lanterns.innerHTML = "";
+    if (!lanterns.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No lanterns yet.";
+      wraps.lanterns.appendChild(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>When</th><th>Name</th><th>Role</th><th>Message</th><th>Photo</th><th></th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const r of lanterns) {
+      const tr = document.createElement("tr");
+      tr.appendChild(td("when", formatWhen(r.created_at)));
+      tr.appendChild(td("", r.name));
+      tr.appendChild(td("role", r.role || ""));
+      tr.appendChild(td("msg", truncate(r.msg || "", 220)));
+
+      const tdThumb = document.createElement("td");
+      tdThumb.className = "thumb";
+      if (r.media_key) {
+        const img = document.createElement("img");
+        img.src = "/media/" + r.media_key;
+        img.alt = "";
+        img.loading = "lazy";
+        tdThumb.appendChild(img);
+      }
+      tr.appendChild(tdThumb);
+
+      const tdAct = document.createElement("td");
+      tdAct.className = "actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Delete";
+      btn.addEventListener("click", () => deleteLantern(r.id, btn));
+      tdAct.appendChild(btn);
+      tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wraps.lanterns.appendChild(table);
+  }
+
+  async function deleteLantern(id, btn) {
+    if (!confirm("Delete this lantern? This cannot be undone.")) return;
+    btn.disabled = true;
+    btn.textContent = "Deleting…";
+    try {
+      const res = await fetch("/api/lanterns/" + encodeURIComponent(id), {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        showGate("Session expired.");
+        return;
+      }
+      if (!res.ok) throw new Error("server_" + res.status);
+      lanternData.lanterns = (lanternData.lanterns || []).filter((l) => l.id !== id);
+      renderLanterns();
+      updateStats();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "Delete";
+      alert("Couldn't delete that lantern. Try again.");
+    }
+  }
+
+  function td(cls, text) {
+    const el = document.createElement("td");
+    if (cls) el.className = cls;
+    el.textContent = text;
+    return el;
+  }
+
+  function truncate(s, n) {
+    if (s.length <= n) return s;
+    return s.slice(0, n).trimEnd() + "…";
   }
 
   function formatWhen(s) {
     // SQLite datetime('now') returns "YYYY-MM-DD HH:MM:SS" in UTC
-    const d = new Date(s.replace(" ", "T") + "Z");
+    const d = new Date(String(s).replace(" ", "T") + "Z");
     if (isNaN(d.getTime())) return s;
     return d.toLocaleString();
   }
 
-  function downloadCsv(panelData) {
-    const rsvps = Array.isArray(panelData?.rsvps) ? panelData.rsvps : [];
+  function downloadRsvpCsv() {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
     const maxGuests = rsvps.reduce(
       (m, r) => Math.max(m, (r.guest_names || []).length),
       0
@@ -349,9 +612,7 @@
       for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
       rows.push(row);
     }
-    const csv = rows
-      .map((row) => row.map(csvEscape).join(","))
-      .join("\r\n");
+    const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -369,7 +630,6 @@
 
   function csvEscape(v) {
     let s = String(v ?? "");
-    // defuse Excel/Sheets formula-injection: prefix risky leading chars with a tab
     if (/^[=+\-@\t\r]/.test(s)) s = "\t" + s;
     if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
     return s;
@@ -388,154 +648,35 @@
     panel.classList.remove("hidden");
   }
 
-  function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY) ?? "";
-  }
-
-  function recomputeTotals() {
-    if (!cached) return;
-    const rsvps = Array.isArray(cached.rsvps) ? cached.rsvps : [];
-    cached.total_parties = rsvps.length;
-    cached.total_attendees = rsvps.reduce(
-      (sum, r) => sum + (Number(r.party_size) || 0),
-      0
-    );
-  }
-
-  function findRowIndex(id) {
-    if (!cached || !Array.isArray(cached.rsvps)) return -1;
-    return cached.rsvps.findIndex((r) => Number(r.id) === Number(id));
-  }
-
-  function handleAuthFailure() {
-    sessionStorage.removeItem(TOKEN_KEY);
-    cached = null;
-    editingId = null;
-    if (editDlg.open) editDlg.close();
-    showGate("Session expired — please sign in again.");
-  }
-
-  function onRowAction(e) {
-    const btn = e.target.closest("button[data-action]");
-    if (!btn) return;
-    const tr = btn.closest("tr[data-id]");
-    if (!tr) return;
-    const id = Number(tr.dataset.id);
-    if (!Number.isFinite(id)) return;
-    if (btn.dataset.action === "delete") {
-      deleteRow(id);
-    } else if (btn.dataset.action === "edit") {
-      openEdit(id);
-    }
-  }
-
-  async function deleteRow(id) {
-    const idx = findRowIndex(id);
-    if (idx < 0) return;
-    const r = cached.rsvps[idx];
-    if (!confirm("Remove RSVP from " + r.name + " (" + r.email + ")?")) return;
-    let res;
-    try {
-      res = await fetch("/api/rsvps/" + id, {
-        method: "DELETE",
-        headers: { Authorization: "Bearer " + getToken() },
+  function activateTab(tab) {
+    activeTab = tab;
+    tabBtns.forEach((b) => {
+      const on = b.dataset.tab === tab;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    Object.entries(views).forEach(([k, el]) => {
+      el.classList.toggle("active", k === tab);
+    });
+    updateStats();
+    if (tab === "lanterns" && !lanternData) {
+      loadLanterns().catch((err) => {
+        if (err.message === "unauthorized") showGate("Session expired.");
+        else wraps.lanterns.innerHTML = '<div class="empty">Couldn\\u2019t load lanterns.</div>';
       });
-    } catch {
-      alert("Couldn't reach the server.");
-      return;
     }
-    if (res.status === 401) return handleAuthFailure();
-    if (res.status === 404) {
-      cached.rsvps.splice(idx, 1);
-      recomputeTotals();
-      show(cached);
-      return;
-    }
-    if (!res.ok) {
-      alert("Couldn't remove that RSVP.");
-      return;
-    }
-    cached.rsvps.splice(idx, 1);
-    recomputeTotals();
-    show(cached);
   }
 
-  function openEdit(id) {
-    const idx = findRowIndex(id);
-    if (idx < 0) return;
-    const r = cached.rsvps[idx];
-    editingId = id;
-    editName.value = r.name;
-    editEmail.value = r.email;
-    editGuests.value = (r.guest_names || []).join("\n");
-    editErr.textContent = "";
-    editDlg.showModal();
-    editName.focus();
-  }
-
-  function parseGuestsTextarea() {
-    return editGuests.value
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  async function submitEdit(e) {
-    e.preventDefault();
-    if (editingId == null) return;
-    const idx = findRowIndex(editingId);
-    if (idx < 0) {
-      editDlg.close();
-      return;
-    }
-    const payload = {
-      name: editName.value.trim(),
-      email: editEmail.value.trim(),
-      guests: parseGuestsTextarea(),
-    };
-    editErr.textContent = "";
-    let res;
+  async function tryToken(t, isInitial) {
     try {
-      res = await fetch("/api/rsvps/" + editingId, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + getToken(),
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      editErr.textContent = "Couldn't reach the server.";
-      return;
-    }
-    if (res.status === 401) {
-      editDlg.close();
-      return handleAuthFailure();
-    }
-    let data = null;
-    try { data = await res.json(); } catch {}
-    if (!res.ok) {
-      editErr.textContent = (data && data.error) || "Couldn't save changes.";
-      return;
-    }
-    const row = cached.rsvps[idx];
-    row.name = payload.name;
-    row.email = payload.email;
-    row.guest_names = payload.guests;
-    row.party_size = payload.guests.length + 1;
-    recomputeTotals();
-    show(cached);
-    editingId = null;
-    editDlg.close();
-  }
-
-  async function tryToken(token, isInitial) {
-    try {
-      const data = await load(token);
-      sessionStorage.setItem(TOKEN_KEY, token);
+      // Validate the token by hitting /api/rsvps (gated). Lanterns load lazily on tab switch.
+      token = t;
+      await loadRsvps();
+      sessionStorage.setItem(TOKEN_KEY, t);
       showPanel();
-      show(data);
+      activateTab(activeTab);
     } catch (err) {
+      token = "";
       if (err.message === "unauthorized") {
         showGate(isInitial ? "" : "That token isn't right.");
       } else {
@@ -552,21 +693,27 @@
   });
 
   exportBtn.addEventListener("click", () => {
-    if (cached) downloadCsv(cached);
+    if (activeTab === "rsvps" && rsvpData) downloadRsvpCsv();
   });
 
   signOutBtn.addEventListener("click", () => {
     sessionStorage.removeItem(TOKEN_KEY);
-    cached = null;
+    token = "";
+    rsvpData = null;
+    lanternData = null;
     editingId = null;
     if (editDlg.open) editDlg.close();
     showGate();
   });
 
-  editForm.addEventListener("submit", submitEdit);
+  editForm.addEventListener("submit", submitEditRsvp);
   editCancel.addEventListener("click", () => {
     editingId = null;
     editDlg.close();
+  });
+
+  tabBtns.forEach((b) => {
+    b.addEventListener("click", () => activateTab(b.dataset.tab));
   });
 
   const stored = sessionStorage.getItem(TOKEN_KEY);

@@ -4,6 +4,18 @@ const GUEST_MAX = 80;
 const GUESTS_MAX = 10;
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
+const LANTERN_NAME_MAX = 60;
+const LANTERN_ROLE_MAX = 60;
+const LANTERN_MSG_MAX = 2000;
+const LANTERN_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+const LANTERN_MEDIA_MIME_EXT = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/avif": "avif",
+};
+const MEDIA_KEY_RE = /^lanterns\/[a-f0-9-]{16,64}\.(png|jpg|webp|avif)$/;
+
 // Cloudflare's "always passes" Turnstile keys for local/CI use.
 // Production replaces both via wrangler secret put / scripts/rsvp-config.js.
 const TURNSTILE_TEST_SECRET = "1x0000000000000000000000000000000AA";
@@ -28,6 +40,23 @@ export default {
         const id = Number(rsvpIdMatch[1]);
         if (request.method === "PATCH") return await handleUpdateRsvp(request, env, id);
         if (request.method === "DELETE") return await handleDeleteRsvp(request, env, id);
+      }
+
+      if (pathname === "/api/lanterns" && request.method === "GET") {
+        return await handleListLanterns(env);
+      }
+
+      if (pathname === "/api/lanterns" && request.method === "POST") {
+        return await handleCreateLantern(request, env);
+      }
+
+      const lanternMatch = /^\/api\/lanterns\/([a-z0-9-]{4,64})$/.exec(pathname);
+      if (lanternMatch && request.method === "DELETE") {
+        return await handleDeleteLantern(request, env, lanternMatch[1]);
+      }
+
+      if (pathname.startsWith("/media/") && request.method === "GET") {
+        return await handleMedia(env, pathname.slice("/media/".length));
       }
 
       return env.ASSETS.fetch(request);
@@ -262,6 +291,214 @@ async function handleDeleteRsvp(request, env, id) {
     return jsonResponse({ error: "Not found" }, 404);
   }
   return jsonResponse({ ok: true });
+}
+
+async function handleListLanterns(env) {
+  let rows;
+  try {
+    const result = await env.DB.prepare(
+      "SELECT id, name, role, msg, media_key, media_type, created_at FROM lanterns ORDER BY created_at DESC"
+    ).all();
+    rows = result.results ?? [];
+  } catch (err) {
+    console.error("lantern_list_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  const lanterns = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    role: r.role ?? "",
+    msg: r.msg,
+    media_key: r.media_key ?? null,
+    media_type: r.media_type ?? null,
+    created_at: r.created_at,
+  }));
+
+  return jsonResponse({ lanterns });
+}
+
+async function handleCreateLantern(request, env) {
+  const ct = request.headers.get("content-type") ?? "";
+  if (!ct.toLowerCase().includes("multipart/form-data")) {
+    return jsonResponse({ error: "Expected multipart/form-data" }, 415);
+  }
+
+  const presented = request.headers.get("x-post-password") ?? "";
+  const expected = env.POST_PASSWORD ?? "";
+  if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch {
+    return jsonResponse({ error: "Invalid form data" }, 400);
+  }
+
+  const name = readField(form, "name", LANTERN_NAME_MAX);
+  if (name.error) return jsonResponse({ error: name.error }, 400);
+
+  const role = readField(form, "role", LANTERN_ROLE_MAX, true);
+  if (role.error) return jsonResponse({ error: role.error }, 400);
+
+  const msg = readField(form, "msg", LANTERN_MSG_MAX);
+  if (msg.error) return jsonResponse({ error: msg.error }, 400);
+
+  const turnstileToken = (form.get("turnstileToken") ?? "").toString().trim();
+  if (!turnstileToken) {
+    return jsonResponse({ error: "Bot check failed. Please try again." }, 400);
+  }
+
+  const ip = request.headers.get("cf-connecting-ip") ?? undefined;
+  const turnstileOk = await verifyTurnstile(turnstileToken, env, ip);
+  if (!turnstileOk) {
+    return jsonResponse({ error: "Bot check failed. Please try again." }, 400);
+  }
+
+  const mediaFile = form.get("media");
+  let mediaKey = null;
+  let mediaType = null;
+  let mediaBytes = null;
+
+  if (mediaFile && typeof mediaFile === "object" && "size" in mediaFile && mediaFile.size > 0) {
+    if (mediaFile.size > LANTERN_MEDIA_MAX_BYTES) {
+      return jsonResponse({ error: "Photo must be 8 MB or smaller." }, 400);
+    }
+    const t = (mediaFile.type ?? "").toLowerCase();
+    const ext = LANTERN_MEDIA_MIME_EXT[t];
+    if (!ext) {
+      return jsonResponse({ error: "Photos only — PNG, JPEG, WebP, or AVIF." }, 400);
+    }
+    mediaType = t;
+    try {
+      mediaBytes = await mediaFile.arrayBuffer();
+    } catch (err) {
+      console.error("lantern_media_read_failed", err?.message ?? String(err));
+      return jsonResponse({ error: "Could not read photo." }, 400);
+    }
+  }
+
+  const id = crypto.randomUUID();
+  if (mediaBytes) {
+    const ext = LANTERN_MEDIA_MIME_EXT[mediaType];
+    mediaKey = `lanterns/${id}.${ext}`;
+    try {
+      await env.MEDIA.put(mediaKey, mediaBytes, {
+        httpMetadata: { contentType: mediaType },
+      });
+    } catch (err) {
+      console.error("lantern_media_put_failed", err?.message ?? String(err));
+      return jsonResponse({ error: "Server error" }, 500);
+    }
+  }
+
+  const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 200) || null;
+  const ipCountry = request.headers.get("cf-ipcountry") ?? null;
+
+  try {
+    await env.DB.prepare(
+      "INSERT INTO lanterns (id, name, role, msg, media_key, media_type, user_agent, ip_country) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+      .bind(id, name.value, role.value || null, msg.value, mediaKey, mediaType, userAgent, ipCountry)
+      .run();
+  } catch (err) {
+    console.error("lantern_insert_failed", err?.message ?? String(err));
+    if (mediaKey) {
+      try { await env.MEDIA.delete(mediaKey); } catch {}
+    }
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT id, name, role, msg, media_key, media_type, created_at FROM lanterns WHERE id = ?"
+  ).bind(id).first();
+
+  return jsonResponse({
+    ok: true,
+    lantern: {
+      id: row.id,
+      name: row.name,
+      role: row.role ?? "",
+      msg: row.msg,
+      media_key: row.media_key ?? null,
+      media_type: row.media_type ?? null,
+      created_at: row.created_at,
+    },
+  });
+}
+
+async function handleDeleteLantern(request, env, id) {
+  const presented = parseBearer(request.headers.get("authorization"));
+  const expected = env.ADMIN_TOKEN ?? "";
+  if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  let row;
+  try {
+    row = await env.DB.prepare(
+      "SELECT media_key FROM lanterns WHERE id = ?"
+    ).bind(id).first();
+  } catch (err) {
+    console.error("lantern_lookup_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+  if (!row) return jsonResponse({ error: "Not found" }, 404);
+
+  try {
+    await env.DB.prepare("DELETE FROM lanterns WHERE id = ?").bind(id).run();
+  } catch (err) {
+    console.error("lantern_delete_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  if (row.media_key) {
+    try {
+      await env.MEDIA.delete(row.media_key);
+    } catch (err) {
+      console.error("lantern_media_delete_failed", err?.message ?? String(err));
+    }
+  }
+
+  return jsonResponse({ ok: true });
+}
+
+async function handleMedia(env, rawKey) {
+  const key = decodeURIComponent(rawKey);
+  if (!MEDIA_KEY_RE.test(key)) {
+    return new Response("Not found", { status: 404 });
+  }
+  let object;
+  try {
+    object = await env.MEDIA.get(key);
+  } catch (err) {
+    console.error("media_get_failed", err?.message ?? String(err));
+    return new Response("Server error", { status: 500 });
+  }
+  if (!object) return new Response("Not found", { status: 404 });
+
+  const headers = new Headers();
+  if (object.httpMetadata?.contentType) {
+    headers.set("Content-Type", object.httpMetadata.contentType);
+  }
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  if (object.httpEtag) headers.set("ETag", object.httpEtag);
+  return new Response(object.body, { headers });
+}
+
+function readField(form, key, max, optional = false) {
+  const raw = form.get(key);
+  const v = (typeof raw === "string" ? raw : "").trim();
+  if (!v) {
+    if (optional) return { value: "" };
+    return { error: `Please enter ${key}.` };
+  }
+  if (v.length > max) {
+    return { error: `${key} is too long (max ${max}).` };
+  }
+  return { value: v };
 }
 
 function parseBearer(headerValue) {

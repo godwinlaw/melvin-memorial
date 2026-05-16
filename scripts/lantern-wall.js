@@ -1,44 +1,18 @@
-// <lantern-wall> — persistent message wall with text + photo/video and a focus view.
+// <lantern-wall> — server-backed message wall with text + photo and a focus view.
 // Theme via CSS custom properties on the element:
 //   --lw-bg, --lw-glow, --lw-ink, --lw-ink-soft, --lw-line, --lw-accent,
 //   --lw-paper-1, --lw-paper-2, --lw-flame
-// Storage: localStorage["lantern-wall::" + (id || location.pathname)]
+// Endpoint via the `endpoint` attribute (default: "/api/lanterns").
+// Posts go through POST {endpoint} with X-Post-Password (cached in sessionStorage)
+// and a Turnstile token relayed by the host page via setTurnstileToken().
 
 (function () {
-  const STORE_PREFIX = "lantern-wall::";
-
-  const SEED = [
-    {
-      name: "Engine 6 Crew",
-      role: "B-Shift, HFD",
-      msg: "{Sample message} Cap, you taught us how to be calm in the smoke. How to walk into a kitchen fire at 3 a.m. and find the seat of it before the family was even out the door. Every probie that comes through this house is going to learn the way you did it. Rest easy. We have it from here.",
-      ts: Date.now() - 1000 * 60 * 60 * 26,
-    },
-    {
-      name: "Joanne Yee",
-      role: "Wife",
-      msg: "Message goes here",
-      ts: Date.now() - 1000 * 60 * 60 * 14,
-    },
-    {
-      name: "Godwin Law",
-      role: "Son in law",
-      msg: "Message goes here",
-      ts: Date.now() - 1000 * 60 * 60 * 74,
-    },
-    {
-      name: "Andrea Lee",
-      role: "Daughter",
-      msg: "Message goes here",
-      ts: Date.now() - 1000 * 60 * 60 * 74,
-    },
-    {
-      name: "Evan Lee",
-      role: "Son",
-      msg: "Message goes here",
-      ts: Date.now() - 1000 * 60 * 60 * 74,
-    },
-  ];
+  const POST_PW_KEY = "lantern-wall::post-password";
+  const NAME_MAX = 60;
+  const ROLE_MAX = 60;
+  const MSG_MAX = 2000;
+  const MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+  const MEDIA_MIMES = ["image/png", "image/jpeg", "image/webp", "image/avif"];
 
   const css = `
 :host {
@@ -60,14 +34,14 @@
 * { box-sizing: border-box; }
 
 .form {
-  max-width: 640px; margin: 0 auto 56px;
+  max-width: 640px; margin: 0 auto 20px;
   border: 1px solid var(--lw-line);
   background: var(--lw-bg);
   padding: 30px;
   position: relative;
 }
 .form label { display: block; color: var(--lw-accent); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin: 0 0 8px; }
-.form input[type=text], .form textarea {
+.form input[type=text], .form textarea, .form input[type=password] {
   width: 100%; background: transparent; border: 0;
   border-bottom: 1px solid var(--lw-line);
   color: var(--lw-ink); font-family: var(--lw-serif); font-size: 18px;
@@ -92,7 +66,7 @@
   max-width: 240px;
 }
 .form .preview.shown { display: block; }
-.form .preview img, .form .preview video { display: block; max-width: 100%; max-height: 140px; }
+.form .preview img { display: block; max-width: 100%; max-height: 140px; }
 .form .preview .clear {
   position: absolute; top: 4px; right: 4px;
   width: 24px; height: 24px; border-radius: 50%;
@@ -103,7 +77,15 @@
   padding: 13px 26px; font-family: var(--lw-sans); font-size: 11px;
   letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; cursor: pointer;
 }
-.form button.submit:hover { filter: brightness(1.06); }
+.form button.submit:hover:not(:disabled) { filter: brightness(1.06); }
+.form button.submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.banner {
+  border: 1px solid var(--lw-line); color: var(--lw-ink);
+  padding: 12px 14px; margin: 0 0 18px; font-size: 14px; line-height: 1.4;
+}
+.banner.error { border-color: #d99c8a; color: #f0c8bb; }
+.banner.info { border-color: var(--lw-accent); color: var(--lw-ink); }
 
 .wall {
   position: relative;
@@ -223,19 +205,8 @@
   overflow: hidden;
   border-radius: 8px 8px 0 0;
 }
-.lantern .thumb img, .lantern .thumb video {
+.lantern .thumb img {
   width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.lantern .thumb .video-mark {
-  position: absolute; right: 8px; top: 8px;
-  background: rgba(0,0,0,0.7); color: white;
-  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
-  padding: 4px 8px; border-radius: 2px;
-  display: flex; align-items: center; gap: 5px;
-}
-.lantern .thumb .video-mark::before {
-  content: ""; width: 0; height: 0;
-  border-left: 6px solid white; border-top: 4px solid transparent; border-bottom: 4px solid transparent;
 }
 .lantern .body .more {
   margin-top: 10px;
@@ -261,7 +232,7 @@
   font-family: var(--lw-serif); font-size: 22px; font-style: italic;
 }
 
-/* ─── modal ─── */
+/* ─── modal (focus view) ─── */
 .modal {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,0.85);
@@ -319,12 +290,8 @@
   border-radius: 14px 14px 0 0;
   overflow: hidden;
 }
-.modal .media img, .modal .media video {
-  max-width: 100%; max-height: 50vh; display: block;
-}
-.modal .body {
-  padding: 36px 44px 40px;
-}
+.modal .media img { max-width: 100%; max-height: 50vh; display: block; }
+.modal .body { padding: 36px 44px 40px; }
 @media (max-width: 600px) { .modal .body { padding: 28px 24px 32px; } }
 .modal .stamp {
   display: inline-block;
@@ -366,6 +333,49 @@
   font-family: var(--lw-serif); font-style: italic; font-size: 14px;
   letter-spacing: 0.02em; text-transform: none; color: rgba(58,29,8,0.7);
 }
+
+/* ─── password gate ─── */
+.gate {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(14px);
+  display: none;
+  align-items: center; justify-content: center;
+  padding: 32px;
+  animation: fade 0.2s ease;
+}
+.gate.shown { display: flex; }
+.gate .card {
+  max-width: 420px; width: 100%;
+  background: rgba(15,29,49,0.95);
+  border: 1px solid var(--lw-line);
+  padding: 32px 28px;
+  text-align: center;
+}
+.gate h3 {
+  font-family: var(--lw-serif); font-weight: 500; font-size: 24px;
+  margin: 0 0 10px;
+}
+.gate p { color: var(--lw-ink-soft); font-size: 14px; margin: 0 0 22px; }
+.gate input[type=password] {
+  width: 100%; background: transparent; border: 1px solid var(--lw-line);
+  color: var(--lw-ink); font: inherit; font-size: 14px;
+  padding: 12px 14px; outline: none; margin-bottom: 12px;
+}
+.gate input[type=password]:focus { border-color: var(--lw-accent); }
+.gate .actions { display: flex; gap: 10px; justify-content: center; }
+.gate button {
+  font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+  padding: 12px 18px; cursor: pointer; font-weight: 600; border: 0;
+}
+.gate button.go { background: var(--lw-accent); color: #1a1208; }
+.gate button.go:hover { filter: brightness(1.06); }
+.gate button.cancel {
+  background: transparent; color: var(--lw-ink-soft);
+  border: 1px solid var(--lw-line);
+}
+.gate button.cancel:hover { color: var(--lw-accent); border-color: var(--lw-accent); }
+.gate .err { color: #d99c8a; font-size: 12px; min-height: 16px; margin: 0 0 12px; }
 `;
 
   function fmtRelative(ts) {
@@ -380,6 +390,12 @@
     return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
 
+  function parseSqliteTs(s) {
+    if (!s) return Date.now();
+    const d = new Date(String(s).replace(" ", "T") + "Z");
+    return isNaN(d.getTime()) ? Date.now() : d.getTime();
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
@@ -391,35 +407,47 @@
       this.entries = [];
       this.sort = "newest";
       this.focusIndex = -1;
+      this._loaded = false;
+      this._loadError = "";
+      this._submitting = false;
+      this._formError = "";
+      this._pendingMedia = null;
+      this._turnstileToken = "";
     }
 
-    get storeKey() {
-      return STORE_PREFIX + (this.getAttribute("id") || location.pathname);
+    get _endpoint() {
+      return this.getAttribute("endpoint") || "/api/lanterns";
     }
+
+    setTurnstileToken(token) { this._turnstileToken = String(token || ""); }
+    clearTurnstileToken() { this._turnstileToken = ""; }
 
     connectedCallback() {
       this.shadowRoot.innerHTML = `
         <style>${css}</style>
-        <form class="form" id="form">
+        <form class="form" id="form" novalidate>
+          <div class="banner error" id="formError" style="display:none" role="alert"></div>
           <label for="lname">From</label>
-          <input id="lname" type="text" name="name" placeholder="Your name" maxlength="60" required>
+          <input id="lname" type="text" name="name" placeholder="Your name" maxlength="${NAME_MAX}" required>
           <label for="lrole">Your relationship to Melvin <span style="color:var(--lw-ink-soft);opacity:0.6;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></label>
-          <input id="lrole" type="text" name="role" placeholder="e.g. Son · Friend · Engine 6 crew" maxlength="60">
+          <input id="lrole" type="text" name="role" placeholder="e.g. Son · Friend · Engine 6 crew" maxlength="${ROLE_MAX}">
           <label for="lmsg">Your message</label>
-          <textarea id="lmsg" name="msg" placeholder="A memory, a thank-you, a goodbye. As long as you'd like." maxlength="2000" required></textarea>
-          <div class="preview" id="preview"><button type="button" class="clear" id="clearAttach" aria-label="Remove attachment">×</button></div>
+          <textarea id="lmsg" name="msg" placeholder="A memory, a thank-you, a goodbye. As long as you'd like." maxlength="${MSG_MAX}" required></textarea>
+          <div class="preview" id="preview"><button type="button" class="clear" id="clearAttach" aria-label="Remove photo">×</button></div>
           <div class="row">
             <div class="meta">
               <button type="button" class="attach" id="attachBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                Photo or video
+                Photo
               </button>
-              <input type="file" id="attachInput" accept="image/*,video/*">
-              <span class="count"><span id="lcount">0</span> / 2000</span>
+              <input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp,image/avif">
+              <span class="count"><span id="lcount">0</span> / ${MSG_MAX}</span>
             </div>
-            <button type="submit" class="submit">Light a Lantern</button>
+            <button type="submit" class="submit" id="submitBtn">Light a Lantern</button>
           </div>
         </form>
+
+        <slot name="bot-check"></slot>
 
         <div class="wall">
           <div class="controls">
@@ -451,25 +479,44 @@
           </div>
           <button class="nav-arrow next" id="navNext" aria-label="Next">›</button>
         </div>
+
+        <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+          <div class="card">
+            <h3 id="gateTitle">Family password</h3>
+            <p>This wall is for family and close friends. Enter the password you were given to light a lantern.</p>
+            <form id="gateForm" autocomplete="off">
+              <input id="gateInput" type="password" autocomplete="off" required placeholder="Password">
+              <div class="err" id="gateErr" role="alert"></div>
+              <div class="actions">
+                <button type="button" class="cancel" id="gateCancel">Cancel</button>
+                <button type="submit" class="go">Continue</button>
+              </div>
+            </form>
+          </div>
+        </div>
       `;
-      this.load();
       this.bind();
-      this.render();
+      this.fetchEntries();
+      // Ask the page to render Turnstile up front so a token is ready by submit time.
+      this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
     }
 
-    load() {
+    async fetchEntries() {
+      const r = this.shadowRoot;
+      const grid = r.getElementById("grid");
+      grid.innerHTML = `<div class="empty">Loading…</div>`;
       try {
-        const raw = localStorage.getItem(this.storeKey);
-        if (raw) {
-          this.entries = JSON.parse(raw);
-          return;
-        }
-      } catch (e) {}
-      this.entries = SEED.map(s => ({ ...s, id: "seed-" + s.ts }));
-    }
-
-    save() {
-      try { localStorage.setItem(this.storeKey, JSON.stringify(this.entries)); } catch (e) {}
+        const res = await fetch(this._endpoint, { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error("server_" + res.status);
+        const data = await res.json();
+        const list = Array.isArray(data?.lanterns) ? data.lanterns : [];
+        this.entries = list.map((row) => normalizeEntry(row));
+      } catch (err) {
+        console.error("lantern_load_failed", err);
+        this._loadError = "Couldn't load the wall. Refresh the page to try again.";
+      }
+      this._loaded = true;
+      this.render();
     }
 
     bind() {
@@ -481,69 +528,53 @@
       const attachInput = r.getElementById("attachInput");
       const preview = r.getElementById("preview");
       const clearAttach = r.getElementById("clearAttach");
-      let pendingMedia = null;
 
       msg.addEventListener("input", () => { counter.textContent = msg.value.length; });
 
       attachBtn.addEventListener("click", () => attachInput.click());
 
-      attachInput.addEventListener("change", async (e) => {
-        const file = e.target.files && e.target.files[0];
+      attachInput.addEventListener("change", () => {
+        const file = attachInput.files && attachInput.files[0];
         if (!file) return;
-        if (file.size > 12 * 1024 * 1024) {
-          alert("Please choose a file under 12 MB. (Hooking up real upload storage will lift this limit.)");
+        if (!MEDIA_MIMES.includes(file.type)) {
+          this._showFormError("Photos only — PNG, JPEG, WebP, or AVIF.");
           attachInput.value = "";
           return;
         }
-        const dataUrl = await new Promise((res, rej) => {
-          const fr = new FileReader();
-          fr.onload = () => res(fr.result);
-          fr.onerror = rej;
-          fr.readAsDataURL(file);
-        });
-        const kind = file.type.startsWith("video") ? "video" : "image";
-        pendingMedia = { kind, src: dataUrl, name: file.name };
+        if (file.size > MEDIA_MAX_BYTES) {
+          this._showFormError("Photo must be 8 MB or smaller.");
+          attachInput.value = "";
+          return;
+        }
+        this._showFormError("");
+        this._pendingMedia = file;
+        const url = URL.createObjectURL(file);
+        [...preview.querySelectorAll("img")].forEach((n) => n.remove());
+        const im = document.createElement("img");
+        im.src = url;
+        im.alt = "";
+        preview.insertBefore(im, clearAttach);
         preview.classList.add("shown");
-        // remove any previous media element
-        [...preview.querySelectorAll("img,video")].forEach(n => n.remove());
-        const el = document.createElement(kind === "video" ? "video" : "img");
-        el.src = dataUrl;
-        if (kind === "video") { el.controls = true; el.muted = true; }
-        preview.insertBefore(el, clearAttach);
       });
 
       clearAttach.addEventListener("click", () => {
-        pendingMedia = null;
+        this._pendingMedia = null;
         attachInput.value = "";
         preview.classList.remove("shown");
-        [...preview.querySelectorAll("img,video")].forEach(n => n.remove());
+        [...preview.querySelectorAll("img")].forEach((n) => {
+          if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
+          n.remove();
+        });
       });
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        const fd = new FormData(form);
-        const entry = {
-          id: "u-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
-          name: (fd.get("name") || "").toString().trim() || "A friend",
-          role: (fd.get("role") || "").toString().trim(),
-          msg: (fd.get("msg") || "").toString().trim(),
-          ts: Date.now(),
-          media: pendingMedia,
-        };
-        if (!entry.msg) return;
-        this.entries.unshift(entry);
-        this.save();
-        form.reset();
-        counter.textContent = "0";
-        clearAttach.click();
-        this.render();
-        // open the just-posted lantern in focus
-        this.openByIndex(0);
+        this._submit();
       });
 
-      r.querySelectorAll("[data-sort]").forEach(btn => {
+      r.querySelectorAll("[data-sort]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          r.querySelectorAll("[data-sort]").forEach(b => b.classList.toggle("active", b === btn));
+          r.querySelectorAll("[data-sort]").forEach((b) => b.classList.toggle("active", b === btn));
           this.sort = btn.dataset.sort;
           this.render();
         });
@@ -562,6 +593,144 @@
         else if (e.key === "ArrowLeft") this.shift(-1);
         else if (e.key === "ArrowRight") this.shift(1);
       });
+
+      // Password gate
+      const gate = r.getElementById("gate");
+      const gateForm = r.getElementById("gateForm");
+      const gateInput = r.getElementById("gateInput");
+      const gateErr = r.getElementById("gateErr");
+      const gateCancel = r.getElementById("gateCancel");
+
+      this._gate = {
+        open: () => {
+          gateErr.textContent = "";
+          gateInput.value = "";
+          gate.classList.add("shown");
+          setTimeout(() => gateInput.focus(), 0);
+        },
+        close: () => gate.classList.remove("shown"),
+        setError: (m) => { gateErr.textContent = m || ""; },
+      };
+
+      gateForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const v = gateInput.value.trim();
+        if (!v) return;
+        sessionStorage.setItem(POST_PW_KEY, v);
+        this._gate.close();
+        this._submit();
+      });
+
+      gateCancel.addEventListener("click", () => this._gate.close());
+    }
+
+    _showFormError(message) {
+      const banner = this.shadowRoot.getElementById("formError");
+      this._formError = message || "";
+      if (this._formError) {
+        banner.textContent = this._formError;
+        banner.style.display = "";
+      } else {
+        banner.textContent = "";
+        banner.style.display = "none";
+      }
+    }
+
+    _setSubmitting(flag) {
+      this._submitting = flag;
+      const r = this.shadowRoot;
+      const btn = r.getElementById("submitBtn");
+      btn.disabled = !!flag;
+      btn.textContent = flag ? "Sending…" : "Light a Lantern";
+    }
+
+    async _submit() {
+      if (this._submitting) return;
+      const r = this.shadowRoot;
+      const name = r.getElementById("lname").value.trim();
+      const role = r.getElementById("lrole").value.trim();
+      const msg = r.getElementById("lmsg").value.trim();
+
+      if (!name) return this._showFormError("Please enter your name.");
+      if (name.length > NAME_MAX) return this._showFormError(`Name is too long (max ${NAME_MAX}).`);
+      if (role.length > ROLE_MAX) return this._showFormError(`Relationship is too long (max ${ROLE_MAX}).`);
+      if (!msg) return this._showFormError("Please write a message.");
+      if (msg.length > MSG_MAX) return this._showFormError(`Message is too long (max ${MSG_MAX}).`);
+
+      const password = sessionStorage.getItem(POST_PW_KEY) || "";
+      if (!password) {
+        this._showFormError("");
+        this._gate.open();
+        return;
+      }
+      if (!this._turnstileToken) {
+        this._showFormError("Please complete the bot check below the form, then try again.");
+        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("name", name);
+      if (role) fd.append("role", role);
+      fd.append("msg", msg);
+      fd.append("turnstileToken", this._turnstileToken);
+      if (this._pendingMedia) fd.append("media", this._pendingMedia, this._pendingMedia.name);
+
+      this._showFormError("");
+      this._setSubmitting(true);
+
+      let res;
+      try {
+        res = await fetch(this._endpoint, {
+          method: "POST",
+          headers: { "X-Post-Password": password },
+          body: fd,
+        });
+      } catch {
+        this._setSubmitting(false);
+        // Turnstile tokens are single-use; ask for a fresh one.
+        this._turnstileToken = "";
+        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
+        return this._showFormError("Couldn't reach the server. Please try again.");
+      }
+
+      if (res.status === 401) {
+        sessionStorage.removeItem(POST_PW_KEY);
+        this._setSubmitting(false);
+        this._gate.open();
+        this._gate.setError("That password isn't right.");
+        return;
+      }
+
+      let body = null;
+      try { body = await res.json(); } catch {}
+
+      if (!res.ok) {
+        this._setSubmitting(false);
+        this._turnstileToken = "";
+        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
+        return this._showFormError(body?.error || "Something looked off with that submission.");
+      }
+
+      const created = body?.lantern ? normalizeEntry(body.lantern) : null;
+      if (created) this.entries.unshift(created);
+
+      // Clear form
+      r.getElementById("form").reset();
+      r.getElementById("lcount").textContent = "0";
+      this._pendingMedia = null;
+      const preview = r.getElementById("preview");
+      preview.classList.remove("shown");
+      [...preview.querySelectorAll("img")].forEach((n) => {
+        if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
+        n.remove();
+      });
+
+      this._setSubmitting(false);
+      this.dispatchEvent(new CustomEvent("lantern-submitted", { bubbles: true, composed: true }));
+
+      this.render();
+      this.openByIndex(0);
     }
 
     sortedEntries() {
@@ -569,7 +738,6 @@
       if (this.sort === "newest") arr.sort((a, b) => b.ts - a.ts);
       else if (this.sort === "oldest") arr.sort((a, b) => a.ts - b.ts);
       else if (this.sort === "random") {
-        // deterministic drift per render — seed-stable shuffle
         for (let i = arr.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -584,16 +752,20 @@
       r.getElementById("totalCount").textContent = this.entries.length;
       const list = this.sortedEntries();
       this._currentList = list;
-      if (!list.length) {
-        grid.innerHTML = `<div class="empty">Be the first to light a lantern.</div>`;
+
+      if (this._loadError && !this.entries.length) {
+        grid.innerHTML = `<div class="empty">${escapeHtml(this._loadError)}</div>`;
         return;
       }
+      if (!list.length) {
+        grid.innerHTML = `<div class="empty">${this._loaded ? "Be the first to light a lantern." : "Loading…"}</div>`;
+        return;
+      }
+
       grid.innerHTML = list.map((e, i) => {
         const overflow = e.msg.length > 200 || !!e.media;
         const thumb = e.media
-          ? (e.media.kind === "video"
-              ? `<div class="thumb"><video src="${escapeHtml(e.media.src)}" muted playsinline preload="metadata"></video><span class="video-mark">video</span></div>`
-              : `<div class="thumb"><img src="${escapeHtml(e.media.src)}" alt=""></div>`)
+          ? `<div class="thumb"><img src="${escapeHtml(e.media.src)}" alt=""></div>`
           : "";
         return `
           <div class="lantern" data-i="${i}" tabindex="0" role="button">
@@ -608,10 +780,13 @@
           </div>
         `;
       }).join("");
-      grid.querySelectorAll(".lantern").forEach(el => {
+
+      grid.querySelectorAll(".lantern").forEach((el) => {
         const open = () => this.openByIndex(parseInt(el.dataset.i, 10));
         el.addEventListener("click", open);
-        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+        });
       });
     }
 
@@ -628,19 +803,15 @@
       r.getElementById("mText").textContent = e.msg;
       r.getElementById("mWhen").textContent = fmtRelative(e.ts);
       r.getElementById("mPos").textContent = (this.focusIndex + 1) + " of " + list.length;
+
       const media = r.getElementById("media");
       media.innerHTML = "";
       if (e.media) {
         media.style.display = "grid";
-        if (e.media.kind === "video") {
-          const v = document.createElement("video");
-          v.src = e.media.src; v.controls = true; v.autoplay = false; v.playsInline = true;
-          media.appendChild(v);
-        } else {
-          const im = document.createElement("img");
-          im.src = e.media.src; im.alt = "";
-          media.appendChild(im);
-        }
+        const im = document.createElement("img");
+        im.src = e.media.src;
+        im.alt = "";
+        media.appendChild(im);
       } else {
         media.style.display = "none";
       }
@@ -658,10 +829,25 @@
       const r = this.shadowRoot;
       r.getElementById("modal").classList.remove("shown");
       document.body.style.overflow = "";
-      const v = r.querySelector("#media video");
-      if (v) v.pause();
     }
   }
 
-  customElements.define("lantern-wall", LanternWall);
+  function normalizeEntry(row) {
+    const ts = parseSqliteTs(row.created_at);
+    const media = row.media_key
+      ? { src: "/media/" + row.media_key, type: row.media_type || "image/jpeg" }
+      : null;
+    return {
+      id: row.id,
+      name: row.name || "",
+      role: row.role || "",
+      msg: row.msg || "",
+      ts,
+      media,
+    };
+  }
+
+  if (!customElements.get("lantern-wall")) {
+    customElements.define("lantern-wall", LanternWall);
+  }
 })();
