@@ -81,3 +81,72 @@ wrangler d1 execute melvin-rsvps --remote \
 ```bash
 wrangler deploy
 ```
+
+## 7. Lantern Wall — additional setup
+
+The lantern wall reuses the same D1 database (`melvin-rsvps`) plus a new R2
+bucket for photos and a new Worker secret for the post password.
+
+### Apply lantern migrations
+
+Local:
+
+```bash
+wrangler d1 migrations apply melvin-rsvps --local
+```
+
+Production:
+
+```bash
+wrangler d1 migrations apply melvin-rsvps --remote
+```
+
+This creates the `lanterns` table (`0002_create_lanterns.sql`) and inserts
+the seed messages (`0003_seed_lanterns.sql`).
+
+### Create the R2 bucket
+
+```bash
+wrangler r2 bucket create melvin-lanterns
+```
+
+The binding `MEDIA` in `wrangler.jsonc` points at this bucket. Photos are
+served back through the Worker at `/media/<key>` (cached aggressively
+because keys are content-addressed by post id).
+
+### Set the post password
+
+This is the password family and friends paste once when posting a lantern.
+It is **separate** from `ADMIN_TOKEN` and from the site-unlock password.
+
+```bash
+openssl rand -base64 18       # or any memorable phrase
+wrangler secret put POST_PASSWORD
+```
+
+Hand the value out via text/email. To rotate it: run `wrangler secret put
+POST_PASSWORD` again with a new value, then `wrangler deploy`. Existing
+visitors with the old password cached in `sessionStorage` will get a 401
+on their next post and be re-prompted.
+
+### Inspecting and deleting lanterns
+
+Most moderation should happen in the admin panel (`/admin`, Lanterns tab).
+For CLI access:
+
+```bash
+wrangler d1 execute melvin-rsvps --remote \
+  --command "SELECT id, created_at, name, role, substr(msg,1,80) FROM lanterns ORDER BY created_at DESC"
+```
+
+To delete a row from the CLI you must remove the matching R2 object too:
+
+```bash
+wrangler d1 execute melvin-rsvps --remote \
+  --command "SELECT id, media_key FROM lanterns WHERE id = 'the-uuid'"
+wrangler d1 execute melvin-rsvps --remote \
+  --command "DELETE FROM lanterns WHERE id = 'the-uuid'"
+wrangler r2 object delete melvin-lanterns/lanterns/the-uuid.jpg   # if media_key was non-null
+```
+
+The admin panel does this in one click.
