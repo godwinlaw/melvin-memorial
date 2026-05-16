@@ -43,7 +43,7 @@ export default {
         return await handleCreateLantern(request, env);
       }
 
-      const lanternMatch = /^\/api\/lanterns\/([a-f0-9-]{16,64})$/.exec(pathname);
+      const lanternMatch = /^\/api\/lanterns\/([a-z0-9-]{4,64})$/.exec(pathname);
       if (lanternMatch && request.method === "DELETE") {
         return await handleDeleteLantern(request, env, lanternMatch[1]);
       }
