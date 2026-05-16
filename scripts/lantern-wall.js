@@ -201,12 +201,12 @@
 .lantern .thumb {
   position: relative;
   margin: -20px -18px 12px;
-  height: 100px;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: 8px 8px 0 0;
 }
 .lantern .thumb img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
 }
 .lantern .body .more {
   margin-top: 10px;
