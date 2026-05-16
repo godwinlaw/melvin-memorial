@@ -262,8 +262,9 @@
     <div class="section-num">05</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
-  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
-  <div class="lantern-turnstile" id="lantern-turnstile-mount"></div>
+  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;">
+    <div slot="bot-check" class="lantern-turnstile" id="lantern-turnstile-mount"></div>
+  </lantern-wall>
 </section>
 
 <footer class="foot">
