@@ -447,6 +447,8 @@
           </div>
         </form>
 
+        <slot name="bot-check"></slot>
+
         <div class="wall">
           <div class="controls">
             <span class="count-pill"><span class="dot"></span> <span id="totalCount">0</span> lanterns lit</span>
