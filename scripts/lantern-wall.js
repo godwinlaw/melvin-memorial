@@ -52,6 +52,7 @@
 .form .row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; }
 .form .meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .form .count { color: var(--lw-ink-soft); font-size: 12px; opacity: 0.7; }
+.form .optional { color: var(--lw-ink-soft); font-size: 11px; opacity: 0.6; }
 .form .attach {
   display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
   color: var(--lw-accent); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
@@ -430,7 +431,7 @@
           <label for="lname">From</label>
           <input id="lname" type="text" name="name" placeholder="Your name" maxlength="${NAME_MAX}" required>
           <label for="lrole">Your relationship to Melvin <span style="color:var(--lw-ink-soft);opacity:0.6;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></label>
-          <input id="lrole" type="text" name="role" placeholder="e.g. Son · Friend · Engine 6 crew" maxlength="${ROLE_MAX}">
+          <input id="lrole" type="text" name="role" placeholder="e.g. Son · Friend · Hayward Fire Department crew" maxlength="${ROLE_MAX}">
           <label for="lmsg">Your message</label>
           <textarea id="lmsg" name="msg" placeholder="A memory, a thank-you, a goodbye. As long as you'd like." maxlength="${MSG_MAX}" required></textarea>
           <div class="preview" id="preview"><button type="button" class="clear" id="clearAttach" aria-label="Remove photo">×</button></div>
@@ -440,6 +441,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
                 Photo
               </button>
+              <span class="optional">(optional)</span>
               <input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp,image/avif">
               <span class="count"><span id="lcount">0</span> / ${MSG_MAX}</span>
             </div>
