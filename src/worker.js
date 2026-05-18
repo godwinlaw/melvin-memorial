@@ -31,7 +31,7 @@ export default {
       const { pathname } = url;
 
       if (pathname === "/api/rsvp" && request.method === "POST") {
-        return await handleCreateRsvp(request, env);
+        return await handleCreateRsvp(request, env, ctx);
       }
 
       if (pathname === "/api/rsvps" && request.method === "GET") {
@@ -70,7 +70,7 @@ export default {
   },
 };
 
-async function handleCreateRsvp(request, env) {
+async function handleCreateRsvp(request, env, ctx) {
   const ct = request.headers.get("content-type") ?? "";
   if (!ct.toLowerCase().includes("application/json")) {
     return jsonResponse({ error: "Expected application/json" }, 415);
@@ -99,18 +99,87 @@ async function handleCreateRsvp(request, env) {
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 200) || null;
   const ipCountry = request.headers.get("cf-ipcountry") ?? null;
 
+  let inserted;
   try {
-    await env.DB.prepare(
-      "INSERT INTO rsvps (name, email, guest_names, party_size, user_agent, ip_country) VALUES (?, ?, ?, ?, ?, ?)"
+    inserted = await env.DB.prepare(
+      "INSERT INTO rsvps (name, email, guest_names, party_size, user_agent, ip_country) " +
+        "VALUES (?, ?, ?, ?, ?, ?) RETURNING id, created_at"
     )
       .bind(name, email, JSON.stringify(guests), partySize, userAgent, ipCountry)
-      .run();
+      .first();
   } catch (err) {
     console.error("rsvp_insert_failed", err?.message ?? String(err));
     return jsonResponse({ error: "Server error" }, 500);
   }
 
+  if (inserted && ctx?.waitUntil) {
+    ctx.waitUntil(
+      sendRsvpNotification(env, {
+        id: inserted.id,
+        created_at: inserted.created_at,
+        name,
+        email,
+        guests,
+        party_size: partySize,
+        ip_country: ipCountry,
+      })
+    );
+  }
+
   return jsonResponse({ ok: true }, 200);
+}
+
+async function sendRsvpNotification(env, rsvp) {
+  const apiKey = env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("rsvp_notify_skipped", "RESEND_API_KEY not set");
+    return;
+  }
+  const to = env.NOTIFY_TO || "godwin.law@acts2.network";
+  const from = env.NOTIFY_FROM || "onboarding@resend.dev";
+
+  const json = JSON.stringify(rsvp, null, 2);
+  // Workers exposes btoa for base64; encode UTF-8 first so non-ASCII names survive.
+  const contentB64 = btoa(unescape(encodeURIComponent(json)));
+
+  const guestList = rsvp.guests.length
+    ? rsvp.guests.map((g) => `  - ${g}`).join("\n")
+    : "  (none)";
+  const text =
+    `New RSVP: ${rsvp.name} <${rsvp.email}>\n` +
+    `Party size: ${rsvp.party_size}\n` +
+    `Guests:\n${guestList}\n` +
+    `Submitted: ${rsvp.created_at}\n`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: `New RSVP — ${rsvp.name} (party of ${rsvp.party_size})`,
+        text,
+        attachments: [
+          { filename: `rsvp-${rsvp.id}.json`, content: contentB64 },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("rsvp_notify_http", res.status, detail.slice(0, 300));
+    }
+  } catch (err) {
+    console.error("rsvp_notify_error", err?.message ?? String(err));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function validateRsvp(body, { requireTurnstile = true } = {}) {
