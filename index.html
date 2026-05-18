@@ -128,7 +128,7 @@
     .ls-band-row.notes { flex-direction: column; align-items: flex-start; gap: 8px; }
   }
 
-  .lanterns { background: radial-gradient(ellipse at 50% 100%, #1a2c45 0%, var(--navy-deep) 70%); }
+  .lanterns { background: linear-gradient(180deg, var(--navy-2) 0%, var(--navy) 100%); }
 
   footer.foot { background: var(--navy-deep); border-top: 1px solid var(--navy-line); padding: 80px 32px 40px; text-align: center; }
   .foot-mark { width: 56px; height: 56px; border: 1px solid var(--brass); margin: 0 auto 24px; display: grid; place-items: center; font-family: "Cormorant Garamond", serif; color: var(--brass-light); font-size: 24px; }
@@ -177,9 +177,6 @@
   .rsvp-dialog-inner { position: relative; }
   .rsvp-turnstile { display: flex; justify-content: center; padding: 0 28px 16px; min-height: 65px; }
   .rsvp-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 8px 28px 16px; text-align: center; }
-  .lantern-turnstile { display: none; justify-content: center; padding: 16px 24px; min-height: 65px; max-width: 640px; margin: 0 auto; }
-  .lantern-turnstile.shown { display: flex; }
-  .lantern-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 12px 24px; text-align: center; }
 </style>
 </head>
 <body>
@@ -222,7 +219,7 @@
     <h3>Please join us in remembering Melvin.</h3>
     <p>A memorial service will be held in his honor.<br>Lunch will be provided afterwards.</p>
     <div class="service-grid">
-      <div><small>Date & Time</small><b>May 30, 2026<br>12:00 PM</b></div>
+      <div><small>Date & Time</small><b>Saturday, May 30, 2026<br>12:00 PM</b></div>
       <div><small>Place</small><b>Acts2 Network<br><a href="https://maps.app.goo.gl/sLjPSrk96DKAPnLt5" target="_blank" rel="noopener">1275 Harbor Bay Parkway</a><br>Alameda, CA 94502</b></div>
     </div>
     <div class="rsvp-cta">
@@ -309,7 +306,7 @@
             <path d="M26 26l14 8-14 8z" fill="currentColor" stroke="none"/>
           </svg>
         </div>
-        <div class="ls-title">The livestream will be available on May 30, 2026 &middot; 12:00 PM PT</div>
+        <div class="ls-title">The livestream will be available on Saturday, May 30, 2026 &middot; 12:00 PM PT</div>
         <div class="ls-sub">Melvin Lum &middot; Memorial Service</div>
         <!-- <a class="ls-cta" href="https://youtube.com/live/WDhbEVWMKZA?feature=share" target="_blank" rel="noopener">Watch on YouTube &rarr;</a> -->
       </div>
@@ -317,10 +314,6 @@
         <div class="ls-band-row">
           <span class="ls-tag">Live</span>
           <span class="ls-label">A link to the stream will be placed here when the service begins. Refresh the page on the day of the service if it does not appear.</span>
-        </div>
-        <div class="ls-band-row notes">
-          <span class="ls-note"><b>Closed captions</b> will be available.</span>
-          <span class="ls-note"><b>Recording</b> will be posted here within 48 hours of the service.</span>
         </div>
       </div>
     </div>
@@ -332,9 +325,7 @@
     <div class="section-num">03</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
-  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;">
-    <div slot="bot-check" class="lantern-turnstile" id="lantern-turnstile-mount"></div>
-  </lantern-wall>
+  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
 </section>
 
 <footer class="foot">
@@ -454,64 +445,6 @@
     }
   })();
 
-  (function () {
-    const wall = document.querySelector("lantern-wall");
-    const mount = document.getElementById("lantern-turnstile-mount");
-    if (!wall || !mount) return;
-
-    const sitekey = (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
-    let widgetId = null;
-
-    function show() { mount.classList.add("shown"); }
-    function hide() { mount.classList.remove("shown"); }
-
-    function render() {
-      if (!sitekey) {
-        mount.textContent = "Bot check unavailable (site key not configured).";
-        mount.className = "lantern-turnstile-fallback shown";
-        return;
-      }
-      if (widgetId !== null) {
-        try { window.turnstile.reset(widgetId); } catch {}
-        return;
-      }
-      const tryRender = () => {
-        if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
-        try {
-          widgetId = window.turnstile.render(mount, {
-            sitekey,
-            theme: "dark",
-            callback: (token) => wall.setTurnstileToken(token),
-            "error-callback": () => wall.clearTurnstileToken(),
-            "expired-callback": () => wall.clearTurnstileToken(),
-          });
-          return true;
-        } catch (err) {
-          console.error("lantern turnstile render failed", err);
-          return false;
-        }
-      };
-      if (tryRender()) return;
-      const start = Date.now();
-      const tick = () => {
-        if (tryRender()) return;
-        if (Date.now() - start < 5000) setTimeout(tick, 100);
-      };
-      setTimeout(tick, 100);
-    }
-
-    wall.addEventListener("lantern-needs-turnstile", () => {
-      show();
-      render();
-    });
-
-    wall.addEventListener("lantern-submitted", () => {
-      wall.clearTurnstileToken();
-      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
-        try { window.turnstile.reset(widgetId); } catch {}
-      }
-    });
-  })();
 </script>
 
 </body>

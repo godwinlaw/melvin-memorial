@@ -13,6 +13,17 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+	"routes": [
+		{
+			"pattern": "melvinlum.com",
+			"zone_name": "melvinlum.com",
+			"custom_domain": true
+		}
+	],
+	"vars": {
+		"NOTIFY_TO": "godwin.law@acts2.network",
+		"NOTIFY_FROM": "onboarding@resend.dev"
+	},
 	"d1_databases": [
 		{
 			"binding": "DB",

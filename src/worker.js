@@ -8,13 +8,16 @@ const LANTERN_NAME_MAX = 60;
 const LANTERN_ROLE_MAX = 60;
 const LANTERN_MSG_MAX = 2000;
 const LANTERN_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+const LANTERN_MEDIA_MAX_COUNT = 4;
 const LANTERN_MEDIA_MIME_EXT = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "image/avif": "avif",
 };
-const MEDIA_KEY_RE = /^lanterns\/[a-f0-9-]{16,64}\.(png|jpg|webp|avif)$/;
+// Accepts the legacy `lanterns/<uuid>.<ext>` form alongside the new
+// `lanterns/<uuid>-<index>.<ext>` form used for multi-photo lanterns.
+const MEDIA_KEY_RE = /^lanterns\/[a-f0-9-]{16,64}(-\d+)?\.(png|jpg|webp|avif)$/;
 
 // Cloudflare's "always passes" Turnstile keys for local/CI use.
 // Production replaces both via wrangler secret put / scripts/rsvp-config.js.
@@ -28,7 +31,7 @@ export default {
       const { pathname } = url;
 
       if (pathname === "/api/rsvp" && request.method === "POST") {
-        return await handleCreateRsvp(request, env);
+        return await handleCreateRsvp(request, env, ctx);
       }
 
       if (pathname === "/api/rsvps" && request.method === "GET") {
@@ -67,7 +70,7 @@ export default {
   },
 };
 
-async function handleCreateRsvp(request, env) {
+async function handleCreateRsvp(request, env, ctx) {
   const ct = request.headers.get("content-type") ?? "";
   if (!ct.toLowerCase().includes("application/json")) {
     return jsonResponse({ error: "Expected application/json" }, 415);
@@ -96,18 +99,87 @@ async function handleCreateRsvp(request, env) {
   const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 200) || null;
   const ipCountry = request.headers.get("cf-ipcountry") ?? null;
 
+  let inserted;
   try {
-    await env.DB.prepare(
-      "INSERT INTO rsvps (name, email, guest_names, party_size, user_agent, ip_country) VALUES (?, ?, ?, ?, ?, ?)"
+    inserted = await env.DB.prepare(
+      "INSERT INTO rsvps (name, email, guest_names, party_size, user_agent, ip_country) " +
+        "VALUES (?, ?, ?, ?, ?, ?) RETURNING id, created_at"
     )
       .bind(name, email, JSON.stringify(guests), partySize, userAgent, ipCountry)
-      .run();
+      .first();
   } catch (err) {
     console.error("rsvp_insert_failed", err?.message ?? String(err));
     return jsonResponse({ error: "Server error" }, 500);
   }
 
+  if (inserted && ctx?.waitUntil) {
+    ctx.waitUntil(
+      sendRsvpNotification(env, {
+        id: inserted.id,
+        created_at: inserted.created_at,
+        name,
+        email,
+        guests,
+        party_size: partySize,
+        ip_country: ipCountry,
+      })
+    );
+  }
+
   return jsonResponse({ ok: true }, 200);
+}
+
+async function sendRsvpNotification(env, rsvp) {
+  const apiKey = env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("rsvp_notify_skipped", "RESEND_API_KEY not set");
+    return;
+  }
+  const to = env.NOTIFY_TO || "godwin.law@acts2.network";
+  const from = env.NOTIFY_FROM || "onboarding@resend.dev";
+
+  const json = JSON.stringify(rsvp, null, 2);
+  // Workers exposes btoa for base64; encode UTF-8 first so non-ASCII names survive.
+  const contentB64 = btoa(unescape(encodeURIComponent(json)));
+
+  const guestList = rsvp.guests.length
+    ? rsvp.guests.map((g) => `  - ${g}`).join("\n")
+    : "  (none)";
+  const text =
+    `New RSVP: ${rsvp.name} <${rsvp.email}>\n` +
+    `Party size: ${rsvp.party_size}\n` +
+    `Guests:\n${guestList}\n` +
+    `Submitted: ${rsvp.created_at}\n`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: `New RSVP — ${rsvp.name} (party of ${rsvp.party_size})`,
+        text,
+        attachments: [
+          { filename: `rsvp-${rsvp.id}.json`, content: contentB64 },
+        ],
+      }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      console.error("rsvp_notify_http", res.status, detail.slice(0, 300));
+    }
+  } catch (err) {
+    console.error("rsvp_notify_error", err?.message ?? String(err));
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function validateRsvp(body, { requireTurnstile = true } = {}) {
@@ -295,14 +367,33 @@ async function handleDeleteRsvp(request, env, id) {
 
 async function handleListLanterns(env) {
   let rows;
+  let mediaRows;
   try {
     const result = await env.DB.prepare(
-      "SELECT id, name, role, msg, media_key, media_type, created_at FROM lanterns ORDER BY created_at DESC"
+      "SELECT id, name, role, msg, created_at FROM lanterns ORDER BY created_at DESC"
     ).all();
     rows = result.results ?? [];
+    if (rows.length) {
+      const placeholders = rows.map(() => "?").join(",");
+      const mediaResult = await env.DB.prepare(
+        `SELECT lantern_id, position, media_key, media_type
+           FROM lantern_media
+          WHERE lantern_id IN (${placeholders})
+          ORDER BY lantern_id, position`
+      ).bind(...rows.map((r) => r.id)).all();
+      mediaRows = mediaResult.results ?? [];
+    } else {
+      mediaRows = [];
+    }
   } catch (err) {
     console.error("lantern_list_failed", err?.message ?? String(err));
     return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  const mediaByLantern = new Map();
+  for (const m of mediaRows) {
+    if (!mediaByLantern.has(m.lantern_id)) mediaByLantern.set(m.lantern_id, []);
+    mediaByLantern.get(m.lantern_id).push({ key: m.media_key, type: m.media_type });
   }
 
   const lanterns = rows.map((r) => ({
@@ -310,8 +401,7 @@ async function handleListLanterns(env) {
     name: r.name,
     role: r.role ?? "",
     msg: r.msg,
-    media_key: r.media_key ?? null,
-    media_type: r.media_type ?? null,
+    media: mediaByLantern.get(r.id) ?? [],
     created_at: r.created_at,
   }));
 
@@ -346,50 +436,52 @@ async function handleCreateLantern(request, env) {
   const msg = readField(form, "msg", LANTERN_MSG_MAX);
   if (msg.error) return jsonResponse({ error: msg.error }, 400);
 
-  const turnstileToken = (form.get("turnstileToken") ?? "").toString().trim();
-  if (!turnstileToken) {
-    return jsonResponse({ error: "Bot check failed. Please try again." }, 400);
+  const rawMedia = form.getAll("media").filter(
+    (v) => v && typeof v === "object" && "size" in v && v.size > 0
+  );
+  if (rawMedia.length > LANTERN_MEDIA_MAX_COUNT) {
+    return jsonResponse(
+      { error: `Up to ${LANTERN_MEDIA_MAX_COUNT} photos per lantern.` },
+      400,
+    );
   }
 
-  const ip = request.headers.get("cf-connecting-ip") ?? undefined;
-  const turnstileOk = await verifyTurnstile(turnstileToken, env, ip);
-  if (!turnstileOk) {
-    return jsonResponse({ error: "Bot check failed. Please try again." }, 400);
-  }
-
-  const mediaFile = form.get("media");
-  let mediaKey = null;
-  let mediaType = null;
-  let mediaBytes = null;
-
-  if (mediaFile && typeof mediaFile === "object" && "size" in mediaFile && mediaFile.size > 0) {
-    if (mediaFile.size > LANTERN_MEDIA_MAX_BYTES) {
-      return jsonResponse({ error: "Photo must be 8 MB or smaller." }, 400);
+  const mediaItems = [];
+  for (const file of rawMedia) {
+    if (file.size > LANTERN_MEDIA_MAX_BYTES) {
+      return jsonResponse({ error: "Each photo must be 8 MB or smaller." }, 400);
     }
-    const t = (mediaFile.type ?? "").toLowerCase();
+    const t = (file.type ?? "").toLowerCase();
     const ext = LANTERN_MEDIA_MIME_EXT[t];
     if (!ext) {
       return jsonResponse({ error: "Photos only — PNG, JPEG, WebP, or AVIF." }, 400);
     }
-    mediaType = t;
+    let bytes;
     try {
-      mediaBytes = await mediaFile.arrayBuffer();
+      bytes = await file.arrayBuffer();
     } catch (err) {
       console.error("lantern_media_read_failed", err?.message ?? String(err));
       return jsonResponse({ error: "Could not read photo." }, 400);
     }
+    mediaItems.push({ ext, type: t, bytes });
   }
 
   const id = crypto.randomUUID();
-  if (mediaBytes) {
-    const ext = LANTERN_MEDIA_MIME_EXT[mediaType];
-    mediaKey = `lanterns/${id}.${ext}`;
+  const uploadedKeys = [];
+  for (let i = 0; i < mediaItems.length; i++) {
+    const item = mediaItems[i];
+    const key = `lanterns/${id}-${i}.${item.ext}`;
     try {
-      await env.MEDIA.put(mediaKey, mediaBytes, {
-        httpMetadata: { contentType: mediaType },
+      await env.MEDIA.put(key, item.bytes, {
+        httpMetadata: { contentType: item.type },
       });
+      uploadedKeys.push(key);
+      item.key = key;
     } catch (err) {
       console.error("lantern_media_put_failed", err?.message ?? String(err));
+      for (const k of uploadedKeys) {
+        try { await env.MEDIA.delete(k); } catch {}
+      }
       return jsonResponse({ error: "Server error" }, 500);
     }
   }
@@ -399,20 +491,28 @@ async function handleCreateLantern(request, env) {
 
   try {
     await env.DB.prepare(
-      "INSERT INTO lanterns (id, name, role, msg, media_key, media_type, user_agent, ip_country) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO lanterns (id, name, role, msg, user_agent, ip_country) VALUES (?, ?, ?, ?, ?, ?)"
     )
-      .bind(id, name.value, role.value || null, msg.value, mediaKey, mediaType, userAgent, ipCountry)
+      .bind(id, name.value, role.value || null, msg.value, userAgent, ipCountry)
       .run();
+    if (mediaItems.length) {
+      const stmt = env.DB.prepare(
+        "INSERT INTO lantern_media (lantern_id, position, media_key, media_type) VALUES (?, ?, ?, ?)"
+      );
+      await env.DB.batch(
+        mediaItems.map((m, i) => stmt.bind(id, i, m.key, m.type))
+      );
+    }
   } catch (err) {
     console.error("lantern_insert_failed", err?.message ?? String(err));
-    if (mediaKey) {
-      try { await env.MEDIA.delete(mediaKey); } catch {}
+    for (const k of uploadedKeys) {
+      try { await env.MEDIA.delete(k); } catch {}
     }
     return jsonResponse({ error: "Server error" }, 500);
   }
 
   const row = await env.DB.prepare(
-    "SELECT id, name, role, msg, media_key, media_type, created_at FROM lanterns WHERE id = ?"
+    "SELECT id, name, role, msg, created_at FROM lanterns WHERE id = ?"
   ).bind(id).first();
 
   return jsonResponse({
@@ -422,8 +522,7 @@ async function handleCreateLantern(request, env) {
       name: row.name,
       role: row.role ?? "",
       msg: row.msg,
-      media_key: row.media_key ?? null,
-      media_type: row.media_type ?? null,
+      media: mediaItems.map((m) => ({ key: m.key, type: m.type })),
       created_at: row.created_at,
     },
   });
@@ -437,26 +536,37 @@ async function handleDeleteLantern(request, env, id) {
   }
 
   let row;
+  let mediaRows;
   try {
     row = await env.DB.prepare(
       "SELECT media_key FROM lanterns WHERE id = ?"
     ).bind(id).first();
+    if (!row) return jsonResponse({ error: "Not found" }, 404);
+    const mediaResult = await env.DB.prepare(
+      "SELECT media_key FROM lantern_media WHERE lantern_id = ?"
+    ).bind(id).all();
+    mediaRows = mediaResult.results ?? [];
   } catch (err) {
     console.error("lantern_lookup_failed", err?.message ?? String(err));
     return jsonResponse({ error: "Server error" }, 500);
   }
-  if (!row) return jsonResponse({ error: "Not found" }, 404);
 
   try {
+    await env.DB.prepare("DELETE FROM lantern_media WHERE lantern_id = ?").bind(id).run();
     await env.DB.prepare("DELETE FROM lanterns WHERE id = ?").bind(id).run();
   } catch (err) {
     console.error("lantern_delete_failed", err?.message ?? String(err));
     return jsonResponse({ error: "Server error" }, 500);
   }
 
-  if (row.media_key) {
+  const keys = new Set();
+  if (row.media_key) keys.add(row.media_key);
+  for (const m of mediaRows) {
+    if (m.media_key) keys.add(m.media_key);
+  }
+  for (const k of keys) {
     try {
-      await env.MEDIA.delete(row.media_key);
+      await env.MEDIA.delete(k);
     } catch (err) {
       console.error("lantern_media_delete_failed", err?.message ?? String(err));
     }

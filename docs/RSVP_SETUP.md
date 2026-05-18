@@ -150,3 +150,53 @@ wrangler r2 object delete melvin-lanterns/lanterns/the-uuid.jpg   # if media_key
 ```
 
 The admin panel does this in one click.
+
+## 8. RSVP email notifications
+
+Every successful `POST /api/rsvp` fires an email (with a JSON attachment of
+the entry) to the address in `NOTIFY_TO` — defaults to
+`godwin.law@acts2.network`. The email is sent via [Resend](https://resend.com)
+and is **fire-and-forget**: the API still returns 200 even if Resend is down
+or the API key is missing. Failures are logged as `rsvp_notify_*` in the
+Worker tail.
+
+### Set the Resend API key
+
+1. Sign up at <https://resend.com>, create an API key under
+   **API Keys → Create API Key**.
+2. Store it as a Worker secret:
+   ```bash
+   wrangler secret put RESEND_API_KEY
+   ```
+
+If the secret is unset, the Worker logs `rsvp_notify_skipped` and the rest of
+the RSVP flow keeps working — useful for local `wrangler dev` runs.
+
+### Pick a `NOTIFY_FROM`
+
+Two options, in `wrangler.jsonc` under `vars`:
+
+- **`onboarding@resend.dev`** (default) — Resend's sandbox sender. Works with
+  no DNS setup, but only delivers to email addresses that own the Resend
+  account. Sign up using `godwin.law@acts2.network` if you want to use this
+  for real.
+- **`noreply@mail.<your-domain>`** (recommended for production) — verify a
+  subdomain of the memorial site's domain in Resend's **Domains** page.
+  Resend prints three DNS records (SPF, DKIM, return-path); add them in
+  Cloudflare DNS, wait for verification, then change `NOTIFY_FROM` and
+  `wrangler deploy`.
+
+### Change the recipient
+
+Edit `NOTIFY_TO` in `wrangler.jsonc` and redeploy. No secret rotation needed.
+
+### Local testing
+
+Drop the key into `.dev.vars` (gitignored) so `wrangler dev` picks it up:
+
+```
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Optionally override the recipient for tests by also adding
+`NOTIFY_TO=your-test-inbox@example.com`.

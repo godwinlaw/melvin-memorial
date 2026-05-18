@@ -93,7 +93,13 @@
   td.when { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
   td.role { color: var(--ivory-soft); font-size: 13px; }
   td.msg { font-size: 13px; max-width: 360px; }
+  td.thumb { position: relative; }
   td.thumb img { width: 56px; height: 56px; object-fit: cover; display: block; border: 1px solid var(--navy-line); }
+  td.thumb .more {
+    display: inline-block; margin-top: 4px;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ivory-soft);
+  }
   td.actions button {
     background: transparent; color: #d99c8a;
     border: 1px solid #6b3a30; padding: 7px 11px;
@@ -530,12 +536,19 @@
 
       const tdThumb = document.createElement("td");
       tdThumb.className = "thumb";
-      if (r.media_key) {
+      const media = Array.isArray(r.media) ? r.media : [];
+      if (media.length) {
         const img = document.createElement("img");
-        img.src = "/media/" + r.media_key;
+        img.src = "/media/" + media[0].key;
         img.alt = "";
         img.loading = "lazy";
         tdThumb.appendChild(img);
+        if (media.length > 1) {
+          const more = document.createElement("span");
+          more.className = "more";
+          more.textContent = "+" + (media.length - 1) + " more";
+          tdThumb.appendChild(more);
+        }
       }
       tr.appendChild(tdThumb);
 
