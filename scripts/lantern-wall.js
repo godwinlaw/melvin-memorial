@@ -1,10 +1,9 @@
-// <lantern-wall> — server-backed message wall with text + photo and a focus view.
+// <lantern-wall> — server-backed message wall with text + photos and a focus view.
 // Theme via CSS custom properties on the element:
 //   --lw-bg, --lw-glow, --lw-ink, --lw-ink-soft, --lw-line, --lw-accent,
 //   --lw-paper-1, --lw-paper-2, --lw-flame
 // Endpoint via the `endpoint` attribute (default: "/api/lanterns").
-// Posts go through POST {endpoint} with X-Post-Password (cached in sessionStorage)
-// and a Turnstile token relayed by the host page via setTurnstileToken().
+// Posts go through POST {endpoint} with X-Post-Password (cached in sessionStorage).
 
 (function () {
   const POST_PW_KEY = "lantern-wall::post-password";
@@ -12,6 +11,7 @@
   const ROLE_MAX = 60;
   const MSG_MAX = 2000;
   const MEDIA_MAX_BYTES = 8 * 1024 * 1024;
+  const MEDIA_MAX_COUNT = 4;
   const MEDIA_MIMES = ["image/png", "image/jpeg", "image/webp", "image/avif"];
 
   const css = `
@@ -63,16 +63,22 @@
 .form input[type=file] { display: none; }
 .form .preview {
   margin: 14px 0 4px; display: none;
-  padding: 8px; border: 1px dashed var(--lw-line); position: relative;
-  max-width: 240px;
+  padding: 8px; border: 1px dashed var(--lw-line);
+  gap: 8px; flex-wrap: wrap;
 }
-.form .preview.shown { display: block; }
-.form .preview img { display: block; max-width: 100%; max-height: 140px; }
-.form .preview .clear {
-  position: absolute; top: 4px; right: 4px;
-  width: 24px; height: 24px; border-radius: 50%;
-  background: rgba(0,0,0,0.6); color: white; border: 0; cursor: pointer; font-size: 14px;
+.form .preview.shown { display: flex; }
+.form .preview .item {
+  position: relative; width: 96px; height: 96px;
+  border: 1px solid var(--lw-line); overflow: hidden;
 }
+.form .preview .item img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.form .preview .item .clear {
+  position: absolute; top: 2px; right: 2px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0,0,0,0.65); color: white; border: 0; cursor: pointer; font-size: 13px;
+  display: grid; place-items: center;
+}
+.form .preview .item .clear:hover { background: rgba(0,0,0,0.85); }
 .form button.submit {
   background: var(--lw-accent); color: #1a1208; border: 0;
   padding: 13px 26px; font-family: var(--lw-sans); font-size: 11px;
@@ -209,6 +215,15 @@
 .lantern .thumb img {
   width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
 }
+.lantern .thumb .more {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(20,10,4,0.7); color: var(--lw-flame);
+  font-family: var(--lw-sans); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 4px 8px; border-radius: 999px;
+  border: 1px solid rgba(255,225,170,0.35);
+  backdrop-filter: blur(2px);
+}
 .lantern .body .more {
   margin-top: 10px;
   font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
@@ -285,13 +300,62 @@
 }
 
 .modal .media {
-  width: 100%; max-height: 50vh;
+  width: 100%;
   background: #1a0e05;
-  display: grid; place-items: center;
   border-radius: 14px 14px 0 0;
   overflow: hidden;
+  position: relative;
 }
-.modal .media img { max-width: 100%; max-height: 50vh; display: block; }
+.modal .media .carousel {
+  position: relative;
+  width: 100%; height: 50vh;
+  overflow: hidden;
+}
+.modal .media .carousel-track {
+  height: 100%;
+  display: flex; align-items: center;
+}
+.modal .media .carousel-slide {
+  flex: 0 0 auto;
+  height: 100%;
+  background: #1a0e05;
+  position: relative;
+}
+.modal .media .carousel-slide img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain; display: block;
+}
+.modal .media .carousel-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+  cursor: pointer; font-size: 22px;
+  display: grid; place-items: center;
+  transition: background 0.2s ease;
+}
+.modal .media .carousel-btn:hover { background: rgba(0,0,0,0.85); }
+.modal .media .carousel-btn:focus-visible {
+  outline: 2px solid var(--lw-flame); outline-offset: 2px;
+}
+.modal .media .carousel-btn.prev { left: 12px; }
+.modal .media .carousel-btn.next { right: 12px; }
+.modal .media .carousel-btn[hidden] { display: none; }
+.modal .media .carousel-dots {
+  position: absolute; left: 0; right: 0; bottom: 10px;
+  display: flex; justify-content: center; gap: 8px;
+}
+.modal .media .carousel-dots[hidden] { display: none; }
+.modal .media .carousel-dots button {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.35); border: 0; padding: 0;
+  cursor: pointer;
+}
+.modal .media .carousel-dots button[aria-selected="true"] { background: var(--lw-flame); }
+.modal .media .carousel-dots button:focus-visible {
+  outline: 2px solid var(--lw-flame); outline-offset: 2px;
+}
 .modal .body { padding: 36px 44px 40px; }
 @media (max-width: 600px) { .modal .body { padding: 28px 24px 32px; } }
 .modal .stamp {
@@ -412,16 +476,13 @@
       this._loadError = "";
       this._submitting = false;
       this._formError = "";
-      this._pendingMedia = null;
-      this._turnstileToken = "";
+      this._pendingMedia = [];
+      this._carouselCleanup = null;
     }
 
     get _endpoint() {
       return this.getAttribute("endpoint") || "/api/lanterns";
     }
-
-    setTurnstileToken(token) { this._turnstileToken = String(token || ""); }
-    clearTurnstileToken() { this._turnstileToken = ""; }
 
     connectedCallback() {
       this.shadowRoot.innerHTML = `
@@ -434,22 +495,20 @@
           <input id="lrole" type="text" name="role" placeholder="e.g. Son · Friend · Hayward Fire Department crew" maxlength="${ROLE_MAX}">
           <label for="lmsg">Your message</label>
           <textarea id="lmsg" name="msg" placeholder="A memory, a thank-you, a goodbye. As long as you'd like." maxlength="${MSG_MAX}" required></textarea>
-          <div class="preview" id="preview"><button type="button" class="clear" id="clearAttach" aria-label="Remove photo">×</button></div>
+          <div class="preview" id="preview"></div>
           <div class="row">
             <div class="meta">
               <button type="button" class="attach" id="attachBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                Photo
+                Photos
               </button>
-              <span class="optional">(optional)</span>
-              <input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp,image/avif">
+              <span class="optional">(up to ${MEDIA_MAX_COUNT}, optional)</span>
+              <input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp,image/avif" multiple>
               <span class="count"><span id="lcount">0</span> / ${MSG_MAX}</span>
             </div>
             <button type="submit" class="submit" id="submitBtn">Light a Lantern</button>
           </div>
         </form>
-
-        <slot name="bot-check"></slot>
 
         <div class="wall">
           <div class="controls">
@@ -467,7 +526,7 @@
           <button class="nav-arrow prev" id="navPrev" aria-label="Previous">‹</button>
           <div class="sheet" id="sheet">
             <button class="close" id="closeBtn" aria-label="Close">×</button>
-            <div class="media" id="media" style="display:none"></div>
+            <div class="media" id="media" style="display:none" role="region" aria-roledescription="carousel" aria-label="Photos"></div>
             <div class="body">
               <div class="stamp">A Message for Melvin</div>
               <h3 id="mName"></h3>
@@ -499,8 +558,6 @@
       `;
       this.bind();
       this.fetchEntries();
-      // Ask the page to render Turnstile up front so a token is ready by submit time.
-      this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
     }
 
     async fetchEntries() {
@@ -529,44 +586,32 @@
       const attachBtn = r.getElementById("attachBtn");
       const attachInput = r.getElementById("attachInput");
       const preview = r.getElementById("preview");
-      const clearAttach = r.getElementById("clearAttach");
 
       msg.addEventListener("input", () => { counter.textContent = msg.value.length; });
 
       attachBtn.addEventListener("click", () => attachInput.click());
 
       attachInput.addEventListener("change", () => {
-        const file = attachInput.files && attachInput.files[0];
-        if (!file) return;
-        if (!MEDIA_MIMES.includes(file.type)) {
-          this._showFormError("Photos only — PNG, JPEG, WebP, or AVIF.");
-          attachInput.value = "";
+        const incoming = Array.from(attachInput.files || []);
+        attachInput.value = "";
+        if (!incoming.length) return;
+        if (this._pendingMedia.length + incoming.length > MEDIA_MAX_COUNT) {
+          this._showFormError(`Up to ${MEDIA_MAX_COUNT} photos per lantern.`);
           return;
         }
-        if (file.size > MEDIA_MAX_BYTES) {
-          this._showFormError("Photo must be 8 MB or smaller.");
-          attachInput.value = "";
-          return;
+        for (const file of incoming) {
+          if (!MEDIA_MIMES.includes(file.type)) {
+            this._showFormError("Photos only — PNG, JPEG, WebP, or AVIF.");
+            return;
+          }
+          if (file.size > MEDIA_MAX_BYTES) {
+            this._showFormError("Each photo must be 8 MB or smaller.");
+            return;
+          }
         }
         this._showFormError("");
-        this._pendingMedia = file;
-        const url = URL.createObjectURL(file);
-        [...preview.querySelectorAll("img")].forEach((n) => n.remove());
-        const im = document.createElement("img");
-        im.src = url;
-        im.alt = "";
-        preview.insertBefore(im, clearAttach);
-        preview.classList.add("shown");
-      });
-
-      clearAttach.addEventListener("click", () => {
-        this._pendingMedia = null;
-        attachInput.value = "";
-        preview.classList.remove("shown");
-        [...preview.querySelectorAll("img")].forEach((n) => {
-          if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
-          n.remove();
-        });
+        for (const file of incoming) this._pendingMedia.push(file);
+        this._renderPreview();
       });
 
       form.addEventListener("submit", (e) => {
@@ -591,9 +636,14 @@
 
       document.addEventListener("keydown", (e) => {
         if (!r.getElementById("modal").classList.contains("shown")) return;
-        if (e.key === "Escape") this.close();
-        else if (e.key === "ArrowLeft") this.shift(-1);
-        else if (e.key === "ArrowRight") this.shift(1);
+        if (e.key === "Escape") return this.close();
+        if (e.key === "ArrowLeft") {
+          if (this._carouselNav && this._carouselNav(-1)) return;
+          this.shift(-1);
+        } else if (e.key === "ArrowRight") {
+          if (this._carouselNav && this._carouselNav(1)) return;
+          this.shift(1);
+        }
       });
 
       // Password gate
@@ -646,6 +696,48 @@
       btn.textContent = flag ? "Sending…" : "Light a Lantern";
     }
 
+    _renderPreview() {
+      const preview = this.shadowRoot.getElementById("preview");
+      [...preview.querySelectorAll("img")].forEach((n) => {
+        if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
+      });
+      preview.innerHTML = "";
+      if (!this._pendingMedia.length) {
+        preview.classList.remove("shown");
+        return;
+      }
+      preview.classList.add("shown");
+      this._pendingMedia.forEach((file, idx) => {
+        const item = document.createElement("div");
+        item.className = "item";
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.alt = "";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "clear";
+        btn.setAttribute("aria-label", `Remove photo ${idx + 1}`);
+        btn.textContent = "×";
+        btn.addEventListener("click", () => {
+          this._pendingMedia.splice(idx, 1);
+          this._renderPreview();
+        });
+        item.appendChild(img);
+        item.appendChild(btn);
+        preview.appendChild(item);
+      });
+    }
+
+    _clearPreview() {
+      const preview = this.shadowRoot.getElementById("preview");
+      [...preview.querySelectorAll("img")].forEach((n) => {
+        if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
+      });
+      preview.innerHTML = "";
+      preview.classList.remove("shown");
+      this._pendingMedia = [];
+    }
+
     async _submit() {
       if (this._submitting) return;
       const r = this.shadowRoot;
@@ -665,18 +757,12 @@
         this._gate.open();
         return;
       }
-      if (!this._turnstileToken) {
-        this._showFormError("Please complete the bot check below the form, then try again.");
-        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
-        return;
-      }
 
       const fd = new FormData();
       fd.append("name", name);
       if (role) fd.append("role", role);
       fd.append("msg", msg);
-      fd.append("turnstileToken", this._turnstileToken);
-      if (this._pendingMedia) fd.append("media", this._pendingMedia, this._pendingMedia.name);
+      for (const f of this._pendingMedia) fd.append("media", f, f.name);
 
       this._showFormError("");
       this._setSubmitting(true);
@@ -690,9 +776,6 @@
         });
       } catch {
         this._setSubmitting(false);
-        // Turnstile tokens are single-use; ask for a fresh one.
-        this._turnstileToken = "";
-        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
         return this._showFormError("Couldn't reach the server. Please try again.");
       }
 
@@ -709,8 +792,6 @@
 
       if (!res.ok) {
         this._setSubmitting(false);
-        this._turnstileToken = "";
-        this.dispatchEvent(new CustomEvent("lantern-needs-turnstile", { bubbles: true, composed: true }));
         return this._showFormError(body?.error || "Something looked off with that submission.");
       }
 
@@ -720,16 +801,9 @@
       // Clear form
       r.getElementById("form").reset();
       r.getElementById("lcount").textContent = "0";
-      this._pendingMedia = null;
-      const preview = r.getElementById("preview");
-      preview.classList.remove("shown");
-      [...preview.querySelectorAll("img")].forEach((n) => {
-        if (n.src && n.src.startsWith("blob:")) URL.revokeObjectURL(n.src);
-        n.remove();
-      });
+      this._clearPreview();
 
       this._setSubmitting(false);
-      this.dispatchEvent(new CustomEvent("lantern-submitted", { bubbles: true, composed: true }));
 
       this.render();
       this.openByIndex(0);
@@ -765,9 +839,13 @@
       }
 
       grid.innerHTML = list.map((e, i) => {
-        const overflow = e.msg.length > 200 || !!e.media;
-        const thumb = e.media
-          ? `<div class="thumb"><img src="${escapeHtml(e.media.src)}" alt=""></div>`
+        const hasMedia = e.media.length > 0;
+        const overflow = e.msg.length > 200 || hasMedia;
+        const thumb = hasMedia
+          ? `<div class="thumb">
+               <img src="${escapeHtml(e.media[0].src)}" alt="">
+               ${e.media.length > 1 ? `<span class="more">+${e.media.length - 1}</span>` : ""}
+             </div>`
           : "";
         return `
           <div class="lantern" data-i="${i}" tabindex="0" role="button">
@@ -806,20 +884,104 @@
       r.getElementById("mWhen").textContent = fmtRelative(e.ts);
       r.getElementById("mPos").textContent = (this.focusIndex + 1) + " of " + list.length;
 
-      const media = r.getElementById("media");
-      media.innerHTML = "";
-      if (e.media) {
-        media.style.display = "grid";
-        const im = document.createElement("img");
-        im.src = e.media.src;
-        im.alt = "";
-        media.appendChild(im);
-      } else {
-        media.style.display = "none";
-      }
+      this._renderMedia(e.media);
       r.getElementById("modal").classList.add("shown");
       r.getElementById("sheet").scrollTop = 0;
       document.body.style.overflow = "hidden";
+    }
+
+    _renderMedia(items) {
+      const media = this.shadowRoot.getElementById("media");
+      if (this._carouselCleanup) {
+        this._carouselCleanup();
+        this._carouselCleanup = null;
+      }
+      media.innerHTML = "";
+      if (!items || !items.length) {
+        media.style.display = "none";
+        return;
+      }
+      media.style.display = "block";
+
+      const track = document.createElement("div");
+      track.className = "carousel-track";
+      track.style.width = `${items.length * 100}%`;
+      items.forEach((m, i) => {
+        const slide = document.createElement("div");
+        slide.className = "carousel-slide";
+        slide.style.width = `${100 / items.length}%`;
+        slide.setAttribute("role", "group");
+        slide.setAttribute("aria-roledescription", "slide");
+        slide.setAttribute("aria-label", `${i + 1} of ${items.length}`);
+        const img = document.createElement("img");
+        img.src = m.src;
+        img.alt = "";
+        slide.appendChild(img);
+        track.appendChild(slide);
+      });
+
+      const prev = document.createElement("button");
+      prev.type = "button";
+      prev.className = "carousel-btn prev";
+      prev.setAttribute("aria-label", "Previous photo");
+      prev.textContent = "‹";
+
+      const next = document.createElement("button");
+      next.type = "button";
+      next.className = "carousel-btn next";
+      next.setAttribute("aria-label", "Next photo");
+      next.textContent = "›";
+
+      const dots = document.createElement("div");
+      dots.className = "carousel-dots";
+      dots.setAttribute("role", "tablist");
+      const dotButtons = items.map((_, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-label", `Photo ${i + 1}`);
+        b.setAttribute("aria-selected", i === 0 ? "true" : "false");
+        dots.appendChild(b);
+        return b;
+      });
+
+      const single = items.length <= 1;
+      if (single) {
+        prev.hidden = true;
+        next.hidden = true;
+        dots.hidden = true;
+      }
+
+      let index = 0;
+      const stepPct = 100 / items.length;
+      const goTo = (i) => {
+        index = ((i % items.length) + items.length) % items.length;
+        track.style.transform = `translateX(-${index * stepPct}%)`;
+        dotButtons.forEach((d, di) => {
+          d.setAttribute("aria-selected", di === index ? "true" : "false");
+        });
+      };
+      goTo(0);
+      track.style.transition = "transform 0.25s ease";
+
+      prev.addEventListener("click", () => goTo(index - 1));
+      next.addEventListener("click", () => goTo(index + 1));
+      dotButtons.forEach((d, i) => d.addEventListener("click", () => goTo(i)));
+
+      if (!single) {
+        this._carouselNav = (dir) => { goTo(index + dir); return true; };
+      } else {
+        this._carouselNav = null;
+      }
+      this._carouselCleanup = () => { this._carouselNav = null; };
+
+      const carousel = document.createElement("div");
+      carousel.className = "carousel";
+      carousel.appendChild(track);
+      carousel.appendChild(prev);
+      carousel.appendChild(next);
+      carousel.appendChild(dots);
+      media.appendChild(carousel);
     }
 
     shift(dir) {
@@ -831,14 +993,20 @@
       const r = this.shadowRoot;
       r.getElementById("modal").classList.remove("shown");
       document.body.style.overflow = "";
+      if (this._carouselCleanup) {
+        this._carouselCleanup();
+        this._carouselCleanup = null;
+      }
     }
   }
 
   function normalizeEntry(row) {
     const ts = parseSqliteTs(row.created_at);
-    const media = row.media_key
-      ? { src: "/media/" + row.media_key, type: row.media_type || "image/jpeg" }
-      : null;
+    const media = Array.isArray(row.media)
+      ? row.media
+          .filter((m) => m && m.key)
+          .map((m) => ({ src: "/media/" + m.key, type: m.type || "image/jpeg" }))
+      : [];
     return {
       id: row.id,
       name: row.name || "",

@@ -177,9 +177,6 @@
   .rsvp-dialog-inner { position: relative; }
   .rsvp-turnstile { display: flex; justify-content: center; padding: 0 28px 16px; min-height: 65px; }
   .rsvp-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 8px 28px 16px; text-align: center; }
-  .lantern-turnstile { display: none; justify-content: center; padding: 16px 24px; min-height: 65px; max-width: 640px; margin: 0 auto; }
-  .lantern-turnstile.shown { display: flex; }
-  .lantern-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 12px 24px; text-align: center; }
 </style>
 </head>
 <body>
@@ -328,9 +325,7 @@
     <div class="section-num">03</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
-  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;">
-    <div slot="bot-check" class="lantern-turnstile" id="lantern-turnstile-mount"></div>
-  </lantern-wall>
+  <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
 </section>
 
 <footer class="foot">
@@ -450,64 +445,6 @@
     }
   })();
 
-  (function () {
-    const wall = document.querySelector("lantern-wall");
-    const mount = document.getElementById("lantern-turnstile-mount");
-    if (!wall || !mount) return;
-
-    const sitekey = (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
-    let widgetId = null;
-
-    function show() { mount.classList.add("shown"); }
-    function hide() { mount.classList.remove("shown"); }
-
-    function render() {
-      if (!sitekey) {
-        mount.textContent = "Bot check unavailable (site key not configured).";
-        mount.className = "lantern-turnstile-fallback shown";
-        return;
-      }
-      if (widgetId !== null) {
-        try { window.turnstile.reset(widgetId); } catch {}
-        return;
-      }
-      const tryRender = () => {
-        if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
-        try {
-          widgetId = window.turnstile.render(mount, {
-            sitekey,
-            theme: "dark",
-            callback: (token) => wall.setTurnstileToken(token),
-            "error-callback": () => wall.clearTurnstileToken(),
-            "expired-callback": () => wall.clearTurnstileToken(),
-          });
-          return true;
-        } catch (err) {
-          console.error("lantern turnstile render failed", err);
-          return false;
-        }
-      };
-      if (tryRender()) return;
-      const start = Date.now();
-      const tick = () => {
-        if (tryRender()) return;
-        if (Date.now() - start < 5000) setTimeout(tick, 100);
-      };
-      setTimeout(tick, 100);
-    }
-
-    wall.addEventListener("lantern-needs-turnstile", () => {
-      show();
-      render();
-    });
-
-    wall.addEventListener("lantern-submitted", () => {
-      wall.clearTurnstileToken();
-      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
-        try { window.turnstile.reset(widgetId); } catch {}
-      }
-    });
-  })();
 </script>
 
 </body>

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A memorial site for Captain Melvin Lum, deployed as a Cloudflare Worker (`wrangler.jsonc`, `src/worker.js`). `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). The Worker also exposes `/api/rsvp` (POST, public + Turnstile), `/api/rsvps` (GET, admin), `/api/lanterns` (GET public; POST gated by post password + Turnstile; DELETE :id admin), and `/media/:key` (GET public, R2-backed).
+A memorial site for Captain Melvin Lum, deployed as a Cloudflare Worker (`wrangler.jsonc`, `src/worker.js`). `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). The Worker also exposes `/api/rsvp` (POST, public + Turnstile), `/api/rsvps` (GET, admin), `/api/lanterns` (GET public; POST gated by post password; DELETE :id admin), and `/media/:key` (GET public, R2-backed).
 
 There is no client build step. Static assets are served via the Worker's `ASSETS` binding; the Worker code itself is plain ES module that wrangler ships as-is. Local dev: `wrangler dev` (apply migrations first with `wrangler d1 migrations apply melvin-rsvps --local`).
 
@@ -48,11 +48,13 @@ Drag-and-drop image placeholder. **Persistence model is non-obvious and load-bea
 
 ### `<lantern-wall>` — `scripts/lantern-wall.js`
 
-Server-backed message wall (text + photo) with a focus view. Reads from `GET /api/lanterns`, posts to `POST /api/lanterns` (multipart) with `X-Post-Password` header + a Turnstile token relayed from the host page via `setTurnstileToken(token)`. Photos go to R2 (8MB cap, image MIME types only); the Worker serves them back at `/media/<key>` with long cache headers. The element dispatches `lantern-needs-turnstile` on connect and after errors, and `lantern-submitted` on success — the host page in `index.html` listens for both to render/reset the Turnstile widget in light DOM (the widget can't run inside shadow DOM). Seed messages live in `migrations/0003_seed_lanterns.sql`, not in the JS.
+Server-backed message wall (text + up to 4 photos) with a focus view. Reads from `GET /api/lanterns`, posts to `POST /api/lanterns` (multipart, `media` field repeated per photo) with the `X-Post-Password` header — the password gate is the only check; there is no Turnstile on this endpoint. Photos go to R2 (8MB cap each, image MIME types only); the Worker serves them back at `/media/<key>` with long cache headers. Seed messages live in `migrations/0003_seed_lanterns.sql`, not in the JS.
+
+Photos are normalized into a `lantern_media` junction table (`lantern_id`, `position`, `media_key`, `media_type`) — `migrations/0004_lantern_media.sql` creates it and backfills any existing single photo at position 0. The legacy `lanterns.media_key` / `media_type` columns are deprecated: readers ignore them, the Worker no longer writes to them, and the delete handler still cleans up any straggler key it finds there as defense in depth. Wall thumbnails show the first photo with a `+N` badge when more exist; the focus modal renders a carousel (prev/next buttons, dot tabs, ←/→ keyboard) when there are multiple.
 
 ### `<rsvp-form>` — `scripts/rsvp-form.js`
 
-Autonomous custom element for the RSVP dialog. Same Turnstile-light-DOM pattern as `<lantern-wall>` (`setTurnstileToken` / `clearTurnstileToken`). POSTs JSON to `/api/rsvp`. Site key in `scripts/rsvp-config.js`; secret + DB in Worker env.
+Autonomous custom element for the RSVP dialog. Renders a Turnstile widget in light DOM via a slot — the host page in `index.html` calls `setTurnstileToken` / `clearTurnstileToken` on the element since the widget can't run inside shadow DOM. POSTs JSON to `/api/rsvp`. Site key in `scripts/rsvp-config.js`; secret + DB in Worker env.
 
 ## When editing
 
