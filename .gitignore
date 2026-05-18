@@ -9,3 +9,8 @@
 !.dev.vars.example
 .env*
 !.env.example
+
+# Playwright debug artifacts (never deploy these)
+.playwright-mcp/
+test-results/
+*-debug.png

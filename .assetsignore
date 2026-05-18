@@ -16,3 +16,11 @@ wrangler.toml
 **/.gitkeep
 CLAUDE.md
 README.md
+
+# Playwright + ad-hoc debug artifacts
+.playwright-mcp
+.playwright-mcp/**
+test-results
+test-results/**
+*-debug.png
+carousel.png
