@@ -82,6 +82,18 @@
   .bio-body p.lede::first-letter { font-size: 64px; float: left; line-height: 0.9; padding: 6px 14px 0 0; color: var(--brass); font-weight: 600; }
   .pull { margin: 36px 0; padding: 24px 0 24px 32px; border-left: 2px solid var(--brass); font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 26px; line-height: 1.4; color: var(--brass-light); }
   .pull cite { display: block; margin-top: 14px; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; font-style: normal; color: var(--muted); }
+  .story-cta { margin-top: 36px; }
+  .story-cta a {
+    display: inline-block;
+    padding: 14px 28px;
+    border: 1px solid var(--brass);
+    color: var(--brass-light);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .story-cta a:hover { background: var(--brass); color: var(--navy-deep); }
 
   .timeline { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); }
   .tl-row { color: var(--navy-line); }
@@ -189,6 +201,7 @@
     </div>
     <nav class="links">
       <a href="#service">Service</a>
+      <a href="story.html">His Story</a>
       <a href="#livestream">Livestream</a>
       <a href="#lanterns">Lanterns</a>
       <a href="#" data-rsvp-open>RSVP</a>
@@ -237,63 +250,25 @@
   </div>
 </dialog>
 
-<!-- Sections below temporarily hidden until content is ready. To re-enable, remove the surrounding comment markers. -->
-<!--
-<section class="block bio" id="life">
+<section class="block bio" id="story">
   <div class="section-head">
     <div class="section-num">02</div>
-    <div class="section-meta"><small>His Life</small><h2>The man behind <em>the badge</em></h2></div>
+    <div class="section-meta"><small>His Story</small><h2>Told in Joanne's <em>own words</em></h2></div>
   </div>
   <div class="bio-grid">
-    <div class="bio-photo"><img src="assets/bio-photo.jpg" alt="Candid photo of Melvin — at home, with family, or off-duty" onerror="this.style.display='none'"></div>
+    <div class="bio-photo"><img src="assets/story/family-1950s.jpg" alt="The Lum family in the 1950s — Edward, mother, baby Lisa, father, and Melvin" onerror="this.style.display='none'"></div>
     <div class="bio-body">
-      <p class="lede">{To modify}Melvin was the kind of man you'd want on the worst day of your life. Calm in the cab on the way to a fire. Calmer still at the kitchen table afterward, pouring coffee, telling a story about a wildland season twenty years past.</p>
-      <p>He gave thirty-one years to the Hayward Fire Department, the last of them as a Captain. He trained crews, mentored probies, and answered the bell tens of thousands of times. The department was his second family.</p>
-      <div class="pull">{Optional quote}"He was steady. Whatever was coming through the door, you knew he was already three steps ahead of it."<cite>— a friend</cite></div>
-      <p>He was a husband to Joanne for <span class="placeholder-text">[xx]</span> years, a father, and a grandfather — the role he loved most. He fished, he tinkered with old engines, and he never met a barbecue he couldn't run.</p>
+      <p class="lede">Mel was born in Oakland May 1954 into a first generation immigrant family. His father was a butcher, his mom a seamstress. His dad was a gifted gardener, took care of everything and Mom was the best cook I ever met. Mel was the middle child of three. His brother, Edward, was five years his senior and his sister, Lisa, five years his junior.</p>
+      <p>He shared many vignettes of his happy childhood. Early on were indications of a fun-loving mischievous rascal&hellip;</p>
+      <div class="pull">&ldquo;He was real, made mistakes, rectified them, was generous, trustworthy and displayed class that was akin to character and integrity.&rdquo;<cite>&mdash; Joanne, on Mel</cite></div>
+      <div class="story-cta"><a href="story.html">Read his full story &rarr;</a></div>
     </div>
   </div>
 </section>
 
-<section class="block timeline" id="timeline">
-  <div class="section-head">
-    <div class="section-num">03</div>
-    <div class="section-meta"><small>A Life in Service</small><h2>Seventy-one years, <em>well lived</em></h2></div>
-  </div>
-  <div class="tl-rail">
-    <div class="tl-row"><div class="y">1954</div><div><h4>Born in <span class="ph">[place]</span></h4><p class="ph">Add a sentence about his early years — parents, hometown, brothers and sisters.</p></div></div>
-    <div class="tl-row"><div class="y">1972</div><div><h4>Graduated from <span class="ph">[high school]</span></h4><p class="ph">Sports, jobs, the year he met someone important.</p></div></div>
-    <div class="tl-row"><div class="y">1976</div><div><h4>Married <span class="ph">[wife]</span></h4><p class="ph">Where they started, the apartment, the first car.</p></div></div>
-    <div class="tl-row"><div class="y">1995</div><div><h4>Joined Hayward Fire Department</h4><p>Began as a probationary firefighter and never left the city he'd come to call home.</p></div></div>
-    <div class="tl-row"><div class="y">2003</div><div><h4>Promoted to Engineer</h4><p class="ph">Notable calls, training, the engine he ran for years.</p></div></div>
-    <div class="tl-row"><div class="y">2014</div><div><h4>Promoted to Captain</h4><p>Took command of his own crew. Measured radio traffic, hot coffee on the bay table, never raised his voice.</p></div></div>
-    <div class="tl-row"><div class="y">2018</div><div><h4>Became a grandfather</h4><p class="ph">The grandkids' names and the way he lit up around them.</p></div></div>
-    <div class="tl-row"><div class="y">2026</div><div><h4>Last alarm</h4><p>Surrounded by family, in the home he built. May 7, 2026.</p></div></div>
-  </div>
-</section>
-
-<section class="block gallery" id="gallery">
-  <div class="section-head">
-    <div class="section-num">04</div>
-    <div class="section-meta"><small>Photographs</small><h2>A lifetime, <em>in pictures</em></h2></div>
-  </div>
-  <div class="gal-grid">
-    <div class="gal-cell g1"><img src="assets/gallery-1.jpg" alt="" onerror="this.style.display='none'"></div>
-    <div class="gal-cell g2"><img src="assets/gallery-2.jpg" alt="" onerror="this.style.display='none'"></div>
-    <div class="gal-cell g3"><img src="assets/gallery-3.jpg" alt="" onerror="this.style.display='none'"></div>
-    <div class="gal-cell g4"><img src="assets/gallery-4.jpg" alt="" onerror="this.style.display='none'"></div>
-    <div class="gal-cell g5"><img src="assets/gallery-5.jpg" alt="" onerror="this.style.display='none'"></div>
-    <div class="gal-cell g6"><img src="assets/gallery-6.jpg" alt="" onerror="this.style.display='none'"></div>
-  </div>
-  <div class="gal-cta">
-    <a href="gallery.html">View all photographs →</a>
-  </div>
-</section>
--->
-
 <section class="block livestream" id="livestream">
   <div class="section-head">
-    <div class="section-num">02</div>
+    <div class="section-num">03</div>
     <div class="section-meta"><small>Watch from Anywhere</small><h2>Can't join us in person? <em>Join via livestream.</em></h2></div>
   </div>
   <div class="ls-wrap">
@@ -322,7 +297,7 @@
 
 <section class="block lanterns" id="lanterns">
   <div class="section-head">
-    <div class="section-num">03</div>
+    <div class="section-num">04</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
   <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>

@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Melvin Lum's Story — In Honored Memory</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/shared.css">
+<style>
+  :root {
+    --navy-deep: #0a1422; --navy: #0f1d31; --navy-2: #16263e; --navy-line: #1f3251;
+    --brass: #c89968; --brass-deep: #a87a4a; --brass-light: #e2c089;
+    --ivory: #f3ead7; --ivory-soft: #d8cdb4; --muted: #8a8068;
+  }
+  body { font-family: "Inter", system-ui, sans-serif; background: var(--navy-deep); color: var(--ivory); }
+  .serif { font-family: "Cormorant Garamond", serif; font-weight: 500; }
+  a { color: var(--brass-light); }
+
+  .topbar { background: rgba(10,20,34,0.85); border-bottom: 1px solid var(--navy-line); }
+  .topbar-inner { max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .crest { display: flex; align-items: center; gap: 14px; }
+  .crest-mark { width: 34px; height: 34px; border: 1px solid var(--brass); display: grid; place-items: center; color: var(--brass-light); font-family: "Cormorant Garamond", serif; font-size: 16px; }
+  .crest-text small { display: block; color: var(--brass); font-size: 9px; letter-spacing: 0.32em; text-transform: uppercase; }
+  .crest-text strong { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 17px; letter-spacing: 0.04em; }
+  nav.links { display: flex; gap: 28px; }
+  nav.links a { color: var(--ivory-soft); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 500; }
+  nav.links a:hover { color: var(--brass-light); }
+  nav.links a[aria-current="page"] { color: var(--brass-light); }
+  @media (max-width: 760px) { nav.links { display: none; } }
+
+  footer.foot { background: var(--navy-deep); border-top: 1px solid var(--navy-line); padding: 80px 32px 40px; text-align: center; }
+  .foot-mark { width: 56px; height: 56px; border: 1px solid var(--brass); margin: 0 auto 24px; display: grid; place-items: center; font-family: "Cormorant Garamond", serif; color: var(--brass-light); font-size: 24px; }
+  footer.foot h4 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 24px; margin: 0 0 12px; }
+  footer.foot p { color: var(--ivory-soft); max-width: 540px; margin: 0 auto 16px; line-height: 1.6; font-size: 14px; }
+  .foot-rule { width: 80px; height: 1px; background: var(--brass); margin: 28px auto; }
+  .foot-links { display: flex; gap: 32px; justify-content: center; margin-top: 16px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
+  .foot-links a { color: var(--brass); }
+  .foot-copy { color: var(--muted); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px; }
+
+  /* Title block */
+  .story-title { padding: 120px 32px 80px; text-align: center; background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%); }
+  .story-title .ribbon { display: inline-flex; align-items: center; gap: 16px; color: var(--brass); font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; margin-bottom: 28px; }
+  .story-title .ribbon::before, .story-title .ribbon::after { content: ""; width: 60px; height: 1px; background: var(--brass); }
+  .story-title h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(48px, 7vw, 96px); line-height: 0.95; letter-spacing: -0.015em; margin: 0 0 18px; color: var(--ivory); }
+  .story-title .byline { display: block; font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--brass); }
+  .story-title .rule { width: 60px; height: 1px; background: var(--brass); margin: 32px auto 0; }
+  @media (max-width: 760px) { .story-title { padding: 80px 24px 56px; } }
+
+  /* Verse panels */
+  .verse { padding: 120px 32px; background: var(--navy-deep); }
+  .verse-inner { max-width: 640px; margin: 0 auto; border: 1px solid var(--brass); padding: 80px 56px; text-align: center; }
+  .verse p { font-family: "Cormorant Garamond", serif; font-style: italic; font-weight: 500; font-size: 22px; line-height: 1.6; color: var(--ivory); margin: 0; }
+  .verse-cite { display: block; margin-top: 32px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
+  @media (max-width: 760px) { .verse { padding: 60px 24px; } .verse-inner { padding: 56px 28px; } }
+
+  /* Chapter container */
+  .story-body { padding: 80px 32px; background: var(--navy-deep); }
+  .story-chapter { max-width: 720px; margin: 0 auto; padding: 0 0 56px; }
+  .story-chapter:last-child { padding-bottom: 0; }
+  .story-chapter p { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 22px; line-height: 1.55; color: var(--ivory); margin: 0 0 22px; }
+  .story-chapter p.lede::first-letter { font-size: 64px; float: left; line-height: 0.9; padding: 6px 14px 0 0; color: var(--brass); font-weight: 600; }
+
+  /* Chapter subhead with brass rules above and below */
+  .story-chapter h3 {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 3.5vw, 40px);
+    color: var(--brass-light);
+    text-align: center;
+    margin: 56px 0 36px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    justify-content: center;
+  }
+  .story-chapter h3::before, .story-chapter h3::after {
+    content: "";
+    flex: 0 0 80px;
+    height: 1px;
+    background: var(--brass);
+  }
+  @media (max-width: 760px) {
+    .story-chapter h3 { margin: 40px 0 28px; gap: 14px; }
+    .story-chapter h3::before, .story-chapter h3::after { flex-basis: 40px; }
+  }
+
+  /* Inline figure */
+  .story-fig { margin: 32px 0; }
+  .story-fig img { width: 100%; height: auto; display: block; border: 1px solid var(--brass); padding: 6px; background: var(--navy); box-sizing: border-box; }
+  .story-fig figcaption { margin-top: 14px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; }
+
+  /* 2×2 photo grid */
+  .story-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 32px 0; }
+  .story-grid-2x2 .cell { aspect-ratio: 1 / 1; border: 1px solid var(--brass); padding: 4px; background: var(--navy); }
+  .story-grid-2x2 .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Display pull quote (centered, brass rules above and below) */
+  .story-pull {
+    max-width: 540px;
+    margin: 48px auto;
+    padding: 32px 0;
+    border-top: 1px solid var(--brass);
+    border-bottom: 1px solid var(--brass);
+    text-align: center;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.4;
+    color: var(--brass-light);
+  }
+  @media (max-width: 760px) { .story-pull { font-size: 24px; padding: 24px 0; margin: 32px auto; } }
+
+  /* Letterpress card (birthday card transcription) */
+  .story-card {
+    max-width: 580px;
+    margin: 36px auto;
+    border: 1px solid var(--brass);
+    background: var(--navy-2);
+    padding: 36px 40px;
+    text-align: center;
+  }
+  .story-card-salutation, .story-card-sign { color: var(--brass-light); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
+  .story-card-sign { margin-top: 24px; }
+  .story-card-body {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1.55;
+    color: var(--ivory);
+    margin: 18px 0 0;
+    text-align: left;
+  }
+  @media (max-width: 760px) { .story-card { padding: 28px 24px; } .story-card-body { font-size: 18px; } }
+
+  /* Closing portrait */
+  .story-portrait { padding: 80px 32px 120px; background: var(--navy-deep); display: flex; justify-content: center; }
+  .story-portrait .frame { border: 1px solid var(--brass); padding: 6px; background: var(--navy); max-width: 360px; width: 100%; }
+  .story-portrait img { width: 100%; height: auto; display: block; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="crest">
+      <div class="crest-mark">L</div>
+      <div class="crest-text"><small>In Honored Memory</small><strong>Melvin Lum</strong></div>
+    </div>
+    <nav class="links">
+      <a href="/#service">Service</a>
+      <a href="story.html" aria-current="page">His Story</a>
+      <a href="/#livestream">Livestream</a>
+      <a href="/#lanterns">Lanterns</a>
+      <a href="/#service">RSVP</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<section class="story-title">
+  <div class="ribbon">In Loving Memory</div>
+  <h1>Melvin Lum&rsquo;s Story</h1>
+  <span class="byline">Written by his wife, Joanne</span>
+  <div class="rule"></div>
+</section>
+
+<section class="verse" aria-label="John 14:2">
+  <div class="verse-inner">
+    <p>In my Father&rsquo;s house are many mansions: if it were not so, I would have told you. I go to prepare a place for you.</p>
+    <span class="verse-cite">John 14:2</span>
+  </div>
+</section>
+
+<section class="story-body">
+
+  <article class="story-chapter">
+    <p class="lede">Mel was born in Oakland May 1954 into a first generation immigrant family. His father was a butcher, his mom a seamstress. His dad was a gifted gardener, took care of everything and Mom was the best cook I ever met. Mel was the middle child of three. His brother, Edward, was five years his senior and his sister, Lisa, five years his junior.</p>
+    <figure class="story-fig">
+      <img src="assets/story/family-1950s.jpg" alt="The Lum family in the 1950s — Edward, mother, baby Lisa, father, and Melvin on the family couch" onerror="this.style.display='none'">
+      <figcaption>From left to right: Melvin, mother, Lisa (younger sister), father, and Edward (older brother)</figcaption>
+    </figure>
+    <p>He shared many vignettes of his happy childhood. Early on were indications of a fun-loving mischievous rascal:</p>
+    <p>He once &ldquo;introduced&rdquo; a Jerusalem beetle under the bathroom door as his sibling sat on the toilet. (Please visualize lots of screaming.)</p>
+  </article>
+
+  <article class="story-chapter">
+    <p>He routinely disassembled toys to see how they worked often by blowing them up in the backyard and filming the event. Always interested in how things worked, he carefully observed his father and the steps involved in driving. Alone, as a child, he backed the car out of the driveway. I think that event resulted in a slight collision, but no one was hurt.</p>
+    <p>But there were examples of a gentle generous little boy:</p>
+    <p>He made up for the Jerusalem beetle incident by buying his sister an easy-bake oven. Growing up with little spending money, he still shared his fast food Pine Cone chicken with a little boy he didn&rsquo;t know well who really wanted a bite. He took good care of a little parakeet his father trained for him, as well as mice, chipmunks and hamsters. Mel had a sixth sense of what little animals needed.</p>
+    <div class="story-grid-2x2">
+      <div class="cell"><img src="assets/story/animals-rabbit.jpg" alt="Mel with a rabbit in the backyard" onerror="this.style.display='none'"></div>
+      <div class="cell"><img src="assets/story/animals-horse.jpg" alt="Mel with a horse on a hike" onerror="this.style.display='none'"></div>
+      <div class="cell"><img src="assets/story/animals-dog.jpg" alt="Mel holding a small dog" onerror="this.style.display='none'"></div>
+      <div class="cell"><img src="assets/story/animals-mouse.jpg" alt="Mel holding a small mouse" onerror="this.style.display='none'"></div>
+    </div>
+  </article>
+
+  <article class="story-chapter">
+    <h3>How We Met</h3>
+    <p>I met Mel in an elevator at UC Berkeley&rsquo;s Evans Hall. It was 1979. I was studying in optometry school and Mel was a new Hayward firefighter studying stacks of index cards with street directions of Hayward. He asked me to a Piedmont fireman&rsquo;s retirement dinner. We dated for a few months and then lost touch, or so I thought. While practicing in the Embarcadero center, I received an exquisite floral arrangement from &ldquo;a friend.&rdquo; I still remember the florist was Fiordella; their arrangements were so artistic. A few years later I received another one from the same mysterious friend wishing me well.</p>
+    <p>Fast forward to 1988, Mel came to the office for an eye exam. He had just been promoted to captain at Hayward fire. He asked me out to dinner and forgot his VISA card when it came time to pay, so I used mine. Immediately, he drove to the ATM and promptly paid me back. Looking back, I should&rsquo;ve married him right then and there. He was real, made mistakes, rectified them, was generous, trustworthy and displayed class that was akin to character and integrity.</p>
+  </article>
+
+  <article class="story-chapter">
+    <h3>The Red-Brick Church</h3>
+    <p>I have to interject a story Mel told me that occurred before we met. One day, discouraged, he stood in front of a very old red brick San Francisco church that predated the 1906 earthquake. Not having grown up in church, he awkwardly prayed to God to send someone to him with whom to share his life. Immediately he felt something like electricity coursed through him. He felt something. Those of you who know me, know that I am a church aficionado. There are many churches in an old city like San Francisco. I was like a kid in a candy store as I explored and considered so many different church venues for the wedding. Unbeknownst to me I chose the very same church where Mel had prayed. I never knew about his story till well after the wedding. We got married in that old red brick church in 1993.</p>
+    <blockquote class="story-pull">&ldquo;Immediately he felt something like electricity coursed through him.&rdquo;</blockquote>
+  </article>
+
+  <article class="story-chapter">
+    <h3>Family</h3>
+    <p>Before we got married in 1993, Mel said, &ldquo;We should have kids because we have good values and could make this world a better place.&rdquo; I was a bit surprised at his wisdom and replied with something dopey like, &ldquo;Did you rehearse that?&rdquo; But we were lucky to have two children as I was already 37. Mel and I brought to parenthood different life skills. He knew the importance of sports, nature, scouting and that team work added up to more than the sum of the parts. I planned the extra curricular, cultural and enrichment activities and we started a college fund when they were zero. We were also lucky owing to Mel&rsquo;s profession to be around for the kids. I worked when Mel was off duty, sort of an anti-fireman&rsquo;s schedule. Therefore one parent was ever present to drive, attend, assist or to yell at the kids.</p>
+    <figure class="story-fig">
+      <img src="assets/story/family-1990s.jpg" alt="Joanne, Mel, and the two children in front of a Christmas tree, 1990s" onerror="this.style.display='none'">
+      <figcaption>Christmas, 1990s</figcaption>
+    </figure>
+  </article>
+
+  <article class="story-chapter">
+    <h3>Hayward Fire</h3>
+    <p>I am indebted to the members of Hayward fire who were literally his brothers in arms. They had each others backs during the Loma Prieta earthquake, the devastating Oakland fire and worked creatively and synergistically. I recall the runaway diesel engine with the broken shut down lever incident. You could not put water on it. Mel took off his turnout coat and stuffed it into the air intake and thus suffocated it. The level of self sacrifice, sans sleep, sans concern for personal safety is what this department is all about. Mel saw a lot of pathos and tragedy and was impelled to call me afterwards if the incident involved a child. He just wanted to make sure that I and the kids were safe. He loved the fire service. Even during this fatal illness, Mel stated he would never have traded his time with Hayward fire.</p>
+    <figure class="story-fig">
+      <img src="assets/story/hayward-ny.jpg" alt="Mel and his Hayward Fire crew in dress coats on a rainy New York street" onerror="this.style.display='none'">
+      <figcaption>Hayward Fire, in New York</figcaption>
+    </figure>
+  </article>
+
+  <article class="story-chapter">
+    <h3>The Last Years</h3>
+    <p>Fast forward to 2025: Mel and I, both retired, settled into a congruent life like two coherent wavelengths of light. We were gearing up for the massive &ldquo;Hail Mary&rdquo; remodel when he fell sick. But Mel left me &ldquo;prizes&rdquo; in the relationships I have with my three children (the plus one is Godwin, Andrea&rsquo;s husband) and we even have a stout little grandson, Aiden. Andrea and Godwin immediately moved home from NY upon hearing of his illness. Evan spent every available moment by Dad&rsquo;s side during his illness and now by mine afterward. We take good care of each other.</p>
+    <p>Mel was never one for lots of written words although he was generous with the spoken ones. Last August he gave me such a significant birthday card that I took pictures of it.</p>
+    <div class="story-card">
+      <div class="story-card-salutation">JO &mdash;</div>
+      <p class="story-card-body">For 32 years, you&rsquo;ve been my partner, my teammate, my best friend, and my confidant. Together we&rsquo;ve raised two amazing children, built a home filled with love, and shared more laughter than I could ever count. You&rsquo;re still as fun loving, smart, and gorgeous as on the day we met in the elevator and you&rsquo;ve only gotten better with time and I&rsquo;m so lucky to be the one who gets to share it with you. So here&rsquo;s to us- to all we&rsquo;ve done, all we still dream of, and many more years of adventures, laughter, and love. You&rsquo;ll always be my favorite person in the world. Happy Birthday Sweetie.</p>
+      <div class="story-card-sign">Love, Mel aka Playboy/Model</div>
+    </div>
+    <p>And yes, it was Mel who anonymously sent the Fiordella flowers so many years ago. And no, I was the lucky one in this marriage. And yes, we will meet again and I can apologize for laughing so hard when I read the playboy/model part.</p>
+    <figure class="story-fig">
+      <img src="assets/story/joanne-mel-lunch.jpg" alt="Joanne and Mel at lunch with matcha drinks, smiling at the camera" onerror="this.style.display='none'">
+    </figure>
+  </article>
+
+</section>
+
+<section class="verse" aria-label="Revelations 21:4">
+  <div class="verse-inner">
+    <p>He will wipe away every tear from their eyes, and death shall be no more, neither shall there be mourning, nor crying, nor pain anymore, for the former things have passed away.</p>
+    <span class="verse-cite">Revelations 21:4</span>
+  </div>
+</section>
+
+<section class="story-portrait">
+  <div class="frame">
+    <img src="assets/story/mel-suit.jpg" alt="Melvin Lum in a dark suit, smiling, in a garden" onerror="this.style.display='none'">
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="foot-mark">L</div>
+  <div class="foot-rule"></div>
+  <div class="foot-links">
+    <a href="/#service">Service</a>
+    <a href="story.html">His Story</a>
+    <a href="/#service">RSVP</a>
+  </div>
+  <div class="foot-rule"></div>
+  <div class="foot-copy">In Honored Memory · Melvin's Family · MMXXVI</div>
+</footer>
+
+</body>
+</html>
