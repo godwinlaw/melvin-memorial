@@ -755,6 +755,10 @@
   }
 
   function activateTab(tab) {
+    if (activeTab !== tab && tab !== "rsvps" && selectedRsvpIds.size) {
+      selectedRsvpIds.clear();
+      if (rsvpData) renderRsvps();
+    }
     activeTab = tab;
     tabBtns.forEach((b) => {
       const on = b.dataset.tab === tab;
@@ -808,6 +812,7 @@
     rsvpData = null;
     lanternData = null;
     editingId = null;
+    selectedRsvpIds.clear();
     if (editDlg.open) editDlg.close();
     showGate();
   });
