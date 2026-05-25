@@ -459,6 +459,18 @@
   }
 
   function onRsvpRowAction(e) {
+    const target = e.target;
+    if (target instanceof HTMLInputElement && target.dataset.action === "select") {
+      const tr = target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      if (!Number.isFinite(id)) return;
+      if (target.checked) selectedRsvpIds.add(id);
+      else selectedRsvpIds.delete(id);
+      updateMasterCheckbox();
+      updateExportButtonLabel();
+      return;
+    }
     const btn = e.target.closest("button[data-action]");
     if (!btn) return;
     const tr = btn.closest("tr[data-id]");
