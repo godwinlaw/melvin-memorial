@@ -3,6 +3,9 @@
 # Claude Code local workspace
 .claude/
 
+# Local-only spec / plan / agent docs (not deployed)
+docs/superpowers/
+
 # wrangler files
 .wrangler
 .dev.vars*
