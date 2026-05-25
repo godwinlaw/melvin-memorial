@@ -525,6 +525,7 @@
       return;
     }
     rsvpData.rsvps.splice(idx, 1);
+    selectedRsvpIds.delete(id);
     recomputeRsvpTotals();
     renderRsvps();
     if (activeTab === "rsvps") updateStats();
