@@ -39,6 +39,109 @@
   .foot-links { display: flex; gap: 32px; justify-content: center; margin-top: 16px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
   .foot-links a { color: var(--brass); }
   .foot-copy { color: var(--muted); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px; }
+
+  /* Title block */
+  .story-title { padding: 120px 32px 80px; text-align: center; background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%); }
+  .story-title .ribbon { display: inline-flex; align-items: center; gap: 16px; color: var(--brass); font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; margin-bottom: 28px; }
+  .story-title .ribbon::before, .story-title .ribbon::after { content: ""; width: 60px; height: 1px; background: var(--brass); }
+  .story-title h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(48px, 7vw, 96px); line-height: 0.95; letter-spacing: -0.015em; margin: 0 0 18px; color: var(--ivory); }
+  .story-title .byline { display: block; font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--brass); }
+  .story-title .rule { width: 60px; height: 1px; background: var(--brass); margin: 32px auto 0; }
+  @media (max-width: 760px) { .story-title { padding: 80px 24px 56px; } }
+
+  /* Verse panels */
+  .verse { padding: 120px 32px; background: var(--navy-deep); }
+  .verse-inner { max-width: 640px; margin: 0 auto; border: 1px solid var(--brass); padding: 80px 56px; text-align: center; }
+  .verse p { font-family: "Cormorant Garamond", serif; font-style: italic; font-weight: 500; font-size: 22px; line-height: 1.6; color: var(--ivory); margin: 0; }
+  .verse-cite { display: block; margin-top: 32px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
+  @media (max-width: 760px) { .verse { padding: 60px 24px; } .verse-inner { padding: 56px 28px; } }
+
+  /* Chapter container */
+  .story-body { padding: 80px 32px; background: var(--navy-deep); }
+  .story-chapter { max-width: 720px; margin: 0 auto; padding: 0 0 56px; }
+  .story-chapter:last-child { padding-bottom: 0; }
+  .story-chapter p { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 22px; line-height: 1.55; color: var(--ivory); margin: 0 0 22px; }
+  .story-chapter p.lede::first-letter { font-size: 64px; float: left; line-height: 0.9; padding: 6px 14px 0 0; color: var(--brass); font-weight: 600; }
+
+  /* Chapter subhead with brass rules above and below */
+  .story-chapter h3 {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 3.5vw, 40px);
+    color: var(--brass-light);
+    text-align: center;
+    margin: 56px 0 36px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    justify-content: center;
+  }
+  .story-chapter h3::before, .story-chapter h3::after {
+    content: "";
+    flex: 0 0 80px;
+    height: 1px;
+    background: var(--brass);
+  }
+  @media (max-width: 760px) {
+    .story-chapter h3 { margin: 40px 0 28px; gap: 14px; }
+    .story-chapter h3::before, .story-chapter h3::after { flex-basis: 40px; }
+  }
+
+  /* Inline figure */
+  .story-fig { margin: 32px 0; }
+  .story-fig img { width: 100%; height: auto; display: block; border: 1px solid var(--brass); padding: 6px; background: var(--navy); box-sizing: border-box; }
+  .story-fig figcaption { margin-top: 14px; color: var(--brass); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; text-align: center; }
+
+  /* 2×2 photo grid */
+  .story-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 32px 0; }
+  .story-grid-2x2 .cell { aspect-ratio: 1 / 1; border: 1px solid var(--brass); padding: 4px; background: var(--navy); }
+  .story-grid-2x2 .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Display pull quote (centered, brass rules above and below) */
+  .story-pull {
+    max-width: 540px;
+    margin: 48px auto;
+    padding: 32px 0;
+    border-top: 1px solid var(--brass);
+    border-bottom: 1px solid var(--brass);
+    text-align: center;
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 32px;
+    line-height: 1.4;
+    color: var(--brass-light);
+  }
+  @media (max-width: 760px) { .story-pull { font-size: 24px; padding: 24px 0; margin: 32px auto; } }
+
+  /* Letterpress card (birthday card transcription) */
+  .story-card {
+    max-width: 580px;
+    margin: 36px auto;
+    border: 1px solid var(--brass);
+    background: var(--navy-2);
+    padding: 36px 40px;
+    text-align: center;
+  }
+  .story-card-salutation, .story-card-sign { color: var(--brass-light); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; }
+  .story-card-sign { margin-top: 24px; }
+  .story-card-body {
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1.55;
+    color: var(--ivory);
+    margin: 18px 0 0;
+    text-align: left;
+  }
+  @media (max-width: 760px) { .story-card { padding: 28px 24px; } .story-card-body { font-size: 18px; } }
+
+  /* Closing portrait */
+  .story-portrait { padding: 80px 32px 120px; background: var(--navy-deep); display: flex; justify-content: center; }
+  .story-portrait .frame { border: 1px solid var(--brass); padding: 6px; background: var(--navy); max-width: 360px; width: 100%; }
+  .story-portrait img { width: 100%; height: auto; display: block; }
 </style>
 </head>
 <body>
