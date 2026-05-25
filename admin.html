@@ -109,6 +109,16 @@
   td.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
   td.row-actions { white-space: nowrap; text-align: right; }
 
+  th.select-col, td.select-col {
+    width: 36px; padding-left: 0; padding-right: 0; text-align: center;
+  }
+  th.select-col input[type="checkbox"],
+  td.select-col input[type="checkbox"] {
+    accent-color: var(--brass);
+    width: 16px; height: 16px; margin: 0; cursor: pointer;
+    vertical-align: middle;
+  }
+
   .row-btn {
     background: transparent; color: var(--ivory-soft);
     border: 1px solid var(--navy-line); padding: 6px 10px;
