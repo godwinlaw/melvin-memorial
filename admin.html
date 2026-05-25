@@ -109,6 +109,16 @@
   td.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
   td.row-actions { white-space: nowrap; text-align: right; }
 
+  th.select-col, td.select-col {
+    width: 36px; padding-left: 0; padding-right: 0; text-align: center;
+  }
+  th.select-col input[type="checkbox"],
+  td.select-col input[type="checkbox"] {
+    accent-color: var(--brass);
+    width: 16px; height: 16px; margin: 0; cursor: pointer;
+    vertical-align: middle;
+  }
+
   .row-btn {
     background: transparent; color: var(--ivory-soft);
     border: 1px solid var(--navy-line); padding: 6px 10px;
@@ -288,6 +298,7 @@
   let rsvpData = null;
   let lanternData = null;
   let editingId = null;
+  let selectedRsvpIds = new Set();
 
   function authHeaders() {
     return { Authorization: "Bearer " + token };
@@ -334,6 +345,48 @@
     }
   }
 
+  function onMasterCheckboxChange(e) {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    if (e.target.checked) {
+      selectedRsvpIds = new Set(rsvps.map((r) => Number(r.id)));
+    } else {
+      selectedRsvpIds.clear();
+    }
+    const rowCheckboxes = wraps.rsvps.querySelectorAll(
+      'input[type="checkbox"][data-action="select"]'
+    );
+    rowCheckboxes.forEach((cb) => {
+      const tr = cb.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      cb.checked = selectedRsvpIds.has(id);
+    });
+    updateMasterCheckbox();
+    updateExportButtonLabel();
+  }
+
+  function updateMasterCheckbox() {
+    const master = document.getElementById("rsvp-select-all");
+    if (!master) return;
+    const total = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps.length : 0;
+    const sel = selectedRsvpIds.size;
+    if (sel === 0) {
+      master.checked = false;
+      master.indeterminate = false;
+    } else if (sel === total) {
+      master.checked = true;
+      master.indeterminate = false;
+    } else {
+      master.checked = false;
+      master.indeterminate = true;
+    }
+  }
+
+  function updateExportButtonLabel() {
+    const sel = selectedRsvpIds.size;
+    exportBtn.textContent = sel > 0 ? "Export " + sel + " selected" : "Export CSV";
+  }
+
   function renderRsvps() {
     const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
     wraps.rsvps.innerHTML = "";
@@ -347,6 +400,17 @@
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
+
+    const thSelect = document.createElement("th");
+    thSelect.className = "select-col";
+    const masterCb = document.createElement("input");
+    masterCb.type = "checkbox";
+    masterCb.id = "rsvp-select-all";
+    masterCb.setAttribute("aria-label", "Select all RSVPs");
+    masterCb.addEventListener("change", onMasterCheckboxChange);
+    thSelect.appendChild(masterCb);
+    headRow.appendChild(thSelect);
+
     for (const label of ["When", "Name", "Email", "Guests", "Party", ""]) {
       const th = document.createElement("th");
       th.textContent = label;
@@ -358,6 +422,17 @@
     for (const r of rsvps) {
       const tr = document.createElement("tr");
       tr.dataset.id = String(r.id);
+
+      const tdSelect = document.createElement("td");
+      tdSelect.className = "select-col";
+      const rowCb = document.createElement("input");
+      rowCb.type = "checkbox";
+      rowCb.dataset.action = "select";
+      rowCb.setAttribute("aria-label", "Select RSVP from " + r.name);
+      rowCb.checked = selectedRsvpIds.has(Number(r.id));
+      tdSelect.appendChild(rowCb);
+      tr.appendChild(tdSelect);
+
       tr.appendChild(td("when", formatWhen(r.created_at)));
       tr.appendChild(td("", r.name));
       tr.appendChild(td("email", r.email));
@@ -385,6 +460,8 @@
     table.appendChild(tbody);
     tbody.addEventListener("click", onRsvpRowAction);
     wraps.rsvps.appendChild(table);
+    updateMasterCheckbox();
+    updateExportButtonLabel();
   }
 
   function recomputeRsvpTotals() {
@@ -403,6 +480,18 @@
   }
 
   function onRsvpRowAction(e) {
+    const target = e.target;
+    if (target instanceof HTMLInputElement && target.dataset.action === "select") {
+      const tr = target.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      if (!Number.isFinite(id)) return;
+      if (target.checked) selectedRsvpIds.add(id);
+      else selectedRsvpIds.delete(id);
+      updateMasterCheckbox();
+      updateExportButtonLabel();
+      return;
+    }
     const btn = e.target.closest("button[data-action]");
     if (!btn) return;
     const tr = btn.closest("tr[data-id]");
@@ -436,6 +525,7 @@
       return;
     }
     rsvpData.rsvps.splice(idx, 1);
+    selectedRsvpIds.delete(id);
     recomputeRsvpTotals();
     renderRsvps();
     if (activeTab === "rsvps") updateStats();
@@ -612,15 +702,18 @@
   }
 
   function downloadRsvpCsv() {
-    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
-    const maxGuests = rsvps.reduce(
+    const all = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    const subset = selectedRsvpIds.size
+      ? all.filter((r) => selectedRsvpIds.has(Number(r.id)))
+      : all;
+    const maxGuests = subset.reduce(
       (m, r) => Math.max(m, (r.guest_names || []).length),
       0
     );
     const headers = ["created_at", "name", "email", "party_size"];
     for (let i = 1; i <= maxGuests; i++) headers.push("guest_" + i);
     const rows = [headers];
-    for (const r of rsvps) {
+    for (const r of subset) {
       const row = [r.created_at, r.name, r.email, String(r.party_size)];
       for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
       rows.push(row);
@@ -662,6 +755,10 @@
   }
 
   function activateTab(tab) {
+    if (activeTab !== tab && tab !== "rsvps" && selectedRsvpIds.size) {
+      selectedRsvpIds.clear();
+      if (rsvpData) renderRsvps();
+    }
     activeTab = tab;
     tabBtns.forEach((b) => {
       const on = b.dataset.tab === tab;
@@ -715,6 +812,7 @@
     rsvpData = null;
     lanternData = null;
     editingId = null;
+    selectedRsvpIds.clear();
     if (editDlg.open) editDlg.close();
     showGate();
   });
