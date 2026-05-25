@@ -298,6 +298,7 @@
   let rsvpData = null;
   let lanternData = null;
   let editingId = null;
+  let selectedRsvpIds = new Set();
 
   function authHeaders() {
     return { Authorization: "Bearer " + token };
