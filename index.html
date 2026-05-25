@@ -57,7 +57,7 @@
   .section-meta h2 { font-family: "Cormorant Garamond", serif; color: var(--ivory); }
   .section-meta h2 em { color: var(--brass-light); }
 
-  .service { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); border-block: 1px solid var(--navy-line); }
+  .service { background: var(--navy-deep); border-top: 1px solid var(--navy-line); }
   .service-card { max-width: 880px; margin: 0 auto; border: 1px solid var(--brass); padding: 56px; background: rgba(10,20,34,0.55); text-align: center; }
   .service-card .stamp { display: inline-block; color: var(--brass); font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; border: 1px solid var(--brass); padding: 6px 14px; margin-bottom: 22px; }
   .service-card h3 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(28px, 3vw, 38px); margin: 0 0 18px; }
@@ -73,7 +73,7 @@
   .notify-form input::placeholder { color: var(--muted); }
   .notify-form button { background: var(--brass); color: var(--navy-deep); }
 
-  .bio { background: var(--navy-deep); }
+  .bio { background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); border-block: 1px solid var(--navy-line); }
   .bio-grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 5fr 7fr; gap: 80px; }
   @media (max-width: 900px) { .bio-grid { grid-template-columns: 1fr; gap: 48px; } }
   .bio-photo { aspect-ratio: 4/5; border: 1px solid var(--brass); padding: 6px; background: var(--navy); }
@@ -200,8 +200,8 @@
       <div class="crest-text"><small>In Honored Memory</small><strong>Melvin Lum</strong></div>
     </div>
     <nav class="links">
-      <a href="#service">Service</a>
       <a href="story.html">His Story</a>
+      <a href="#service">Service</a>
       <a href="#livestream">Livestream</a>
       <a href="#lanterns">Lanterns</a>
       <a href="#" data-rsvp-open>RSVP</a>
@@ -222,9 +222,25 @@
   </div>
 </section>
 
-<section class="block service" id="service">
+<section class="block bio" id="story">
   <div class="section-head">
     <div class="section-num">01</div>
+    <div class="section-meta"><small>His Story</small><h2>A life <em>in love and fire</em></h2></div>
+  </div>
+  <div class="bio-grid">
+    <div class="bio-photo"><img src="assets/family-1950s.jpg" alt="The Lum family in the 1950s — Edward, mother, baby Lisa, father, and Melvin" onerror="this.style.display='none'"></div>
+    <div class="bio-body">
+      <p class="lede">Mel was born in Oakland May 1954 into a first generation immigrant family. His father was a butcher, his mom a seamstress. His dad was a gifted gardener, took care of everything and Mom was the best cook I ever met. Mel was the middle child of three. His brother, Edward, was five years his senior and his sister, Lisa, five years his junior.</p>
+      <p>He shared many vignettes of his happy childhood. Early on were indications of a fun-loving mischievous rascal&hellip;</p>
+      <div class="pull">&ldquo;He was real, made mistakes, rectified them, was generous, trustworthy and displayed class that was akin to character and integrity.&rdquo;<cite>&mdash; Joanne, on Mel</cite></div>
+      <div class="story-cta"><a href="story.html">Read his full story &rarr;</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="block service" id="service">
+  <div class="section-head">
+    <div class="section-num">02</div>
     <div class="section-meta"><small>Memorial Service</small><h2>A gathering to <em>honor him</em></h2></div>
   </div>
   <div class="service-card">
@@ -249,22 +265,6 @@
     <div class="rsvp-turnstile" id="rsvp-turnstile-mount"></div>
   </div>
 </dialog>
-
-<section class="block bio" id="story">
-  <div class="section-head">
-    <div class="section-num">02</div>
-    <div class="section-meta"><small>His Story</small><h2>A life <em>in love and fire</em></h2></div>
-  </div>
-  <div class="bio-grid">
-    <div class="bio-photo"><img src="assets/family-1950s.jpg" alt="The Lum family in the 1950s — Edward, mother, baby Lisa, father, and Melvin" onerror="this.style.display='none'"></div>
-    <div class="bio-body">
-      <p class="lede">Mel was born in Oakland May 1954 into a first generation immigrant family. His father was a butcher, his mom a seamstress. His dad was a gifted gardener, took care of everything and Mom was the best cook I ever met. Mel was the middle child of three. His brother, Edward, was five years his senior and his sister, Lisa, five years his junior.</p>
-      <p>He shared many vignettes of his happy childhood. Early on were indications of a fun-loving mischievous rascal&hellip;</p>
-      <div class="pull">&ldquo;He was real, made mistakes, rectified them, was generous, trustworthy and displayed class that was akin to character and integrity.&rdquo;<cite>&mdash; Joanne, on Mel</cite></div>
-      <div class="story-cta"><a href="story.html">Read his full story &rarr;</a></div>
-    </div>
-  </div>
-</section>
 
 <section class="block livestream" id="livestream">
   <div class="section-head">
