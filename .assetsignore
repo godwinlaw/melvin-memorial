@@ -17,6 +17,18 @@ wrangler.toml
 CLAUDE.md
 README.md
 
+# Internal docs (specs, plans) — never serve publicly
+docs
+docs/**
+
+# Worker source is bundled into the Worker itself; don't serve it as a static asset
+src
+src/**
+
+# DB migrations are applied via wrangler, not served
+migrations
+migrations/**
+
 # Playwright + ad-hoc debug artifacts
 .playwright-mcp
 .playwright-mcp/**
