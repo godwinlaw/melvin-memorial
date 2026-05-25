@@ -345,6 +345,26 @@
     }
   }
 
+  function onMasterCheckboxChange(e) {
+    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    if (e.target.checked) {
+      selectedRsvpIds = new Set(rsvps.map((r) => Number(r.id)));
+    } else {
+      selectedRsvpIds.clear();
+    }
+    const rowCheckboxes = wraps.rsvps.querySelectorAll(
+      'input[type="checkbox"][data-action="select"]'
+    );
+    rowCheckboxes.forEach((cb) => {
+      const tr = cb.closest("tr[data-id]");
+      if (!tr) return;
+      const id = Number(tr.dataset.id);
+      cb.checked = selectedRsvpIds.has(id);
+    });
+    updateMasterCheckbox();
+    updateExportButtonLabel();
+  }
+
   function updateMasterCheckbox() {
     const master = document.getElementById("rsvp-select-all");
     if (!master) return;
@@ -387,6 +407,7 @@
     masterCb.type = "checkbox";
     masterCb.id = "rsvp-select-all";
     masterCb.setAttribute("aria-label", "Select all RSVPs");
+    masterCb.addEventListener("change", onMasterCheckboxChange);
     thSelect.appendChild(masterCb);
     headRow.appendChild(thSelect);
 
