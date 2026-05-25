@@ -358,6 +358,16 @@
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const headRow = document.createElement("tr");
+
+    const thSelect = document.createElement("th");
+    thSelect.className = "select-col";
+    const masterCb = document.createElement("input");
+    masterCb.type = "checkbox";
+    masterCb.id = "rsvp-select-all";
+    masterCb.setAttribute("aria-label", "Select all RSVPs");
+    thSelect.appendChild(masterCb);
+    headRow.appendChild(thSelect);
+
     for (const label of ["When", "Name", "Email", "Guests", "Party", ""]) {
       const th = document.createElement("th");
       th.textContent = label;
@@ -369,6 +379,17 @@
     for (const r of rsvps) {
       const tr = document.createElement("tr");
       tr.dataset.id = String(r.id);
+
+      const tdSelect = document.createElement("td");
+      tdSelect.className = "select-col";
+      const rowCb = document.createElement("input");
+      rowCb.type = "checkbox";
+      rowCb.dataset.action = "select";
+      rowCb.setAttribute("aria-label", "Select RSVP from " + r.name);
+      rowCb.checked = selectedRsvpIds.has(Number(r.id));
+      tdSelect.appendChild(rowCb);
+      tr.appendChild(tdSelect);
+
       tr.appendChild(td("when", formatWhen(r.created_at)));
       tr.appendChild(td("", r.name));
       tr.appendChild(td("email", r.email));
