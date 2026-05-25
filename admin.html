@@ -345,6 +345,28 @@
     }
   }
 
+  function updateMasterCheckbox() {
+    const master = document.getElementById("rsvp-select-all");
+    if (!master) return;
+    const total = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps.length : 0;
+    const sel = selectedRsvpIds.size;
+    if (sel === 0) {
+      master.checked = false;
+      master.indeterminate = false;
+    } else if (sel === total) {
+      master.checked = true;
+      master.indeterminate = false;
+    } else {
+      master.checked = false;
+      master.indeterminate = true;
+    }
+  }
+
+  function updateExportButtonLabel() {
+    const sel = selectedRsvpIds.size;
+    exportBtn.textContent = sel > 0 ? "Export " + sel + " selected" : "Export CSV";
+  }
+
   function renderRsvps() {
     const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
     wraps.rsvps.innerHTML = "";
@@ -417,6 +439,8 @@
     table.appendChild(tbody);
     tbody.addEventListener("click", onRsvpRowAction);
     wraps.rsvps.appendChild(table);
+    updateMasterCheckbox();
+    updateExportButtonLabel();
   }
 
   function recomputeRsvpTotals() {
