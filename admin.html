@@ -701,15 +701,18 @@
   }
 
   function downloadRsvpCsv() {
-    const rsvps = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
-    const maxGuests = rsvps.reduce(
+    const all = Array.isArray(rsvpData?.rsvps) ? rsvpData.rsvps : [];
+    const subset = selectedRsvpIds.size
+      ? all.filter((r) => selectedRsvpIds.has(Number(r.id)))
+      : all;
+    const maxGuests = subset.reduce(
       (m, r) => Math.max(m, (r.guest_names || []).length),
       0
     );
     const headers = ["created_at", "name", "email", "party_size"];
     for (let i = 1; i <= maxGuests; i++) headers.push("guest_" + i);
     const rows = [headers];
-    for (const r of rsvps) {
+    for (const r of subset) {
       const row = [r.created_at, r.name, r.email, String(r.party_size)];
       for (let i = 0; i < maxGuests; i++) row.push((r.guest_names || [])[i] ?? "");
       rows.push(row);
