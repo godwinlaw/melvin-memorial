@@ -9,6 +9,27 @@ const LANTERN_ROLE_MAX = 60;
 const LANTERN_MSG_MAX = 2000;
 const LANTERN_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
 const LANTERN_MEDIA_MAX_COUNT = 4;
+
+const BOOK_NAME_MAX = 200;
+const BOOK_EMAIL_MAX = 320;
+const BOOK_ADDRESS_MAX = 1000;
+
+// Source-of-truth book table. The client sends a `bookId`; the server
+// looks up title/author here and stores both. Keep in sync with the
+// BOOKS constant in preview.html.
+const BOOKS = {
+  walking: {
+    title: "Walking with God through Pain and Suffering",
+    author: "Timothy Keller",
+  },
+  mere:    { title: "Mere Christianity",    author: "C. S. Lewis" },
+  proof:   { title: "Proof of Heaven",      author: "Eben Alexander, M.D." },
+  imagine: { title: "Imagine Heaven",       author: "John Burke" },
+  making:  { title: "Making Sense of God",  author: "Timothy Keller" },
+};
+const BOOK_FORMATS = new Set(["paperback", "audiobook", "kindle"]);
+const BOOK_EMAIL_RE = /.+@.+\..+/;
+
 const LANTERN_MEDIA_MIME_EXT = {
   "image/png": "png",
   "image/jpeg": "jpg",
