@@ -203,7 +203,7 @@
 
 <section class="gate" id="gate" aria-labelledby="gate-title">
   <h1 id="gate-title">Admin</h1>
-  <p>Paste the admin token to manage RSVPs and lanterns.</p>
+  <p>Paste the admin token to manage RSVPs, lanterns, and book claims.</p>
   <form id="gate-form" autocomplete="off">
     <label for="tok">Admin token</label>
     <input id="tok" type="password" autocomplete="off" autofocus required>
@@ -225,6 +225,7 @@
   <div class="tabs" role="tablist">
     <button type="button" class="active" data-tab="rsvps" role="tab" aria-selected="true">RSVPs</button>
     <button type="button" data-tab="lanterns" role="tab" aria-selected="false">Lanterns</button>
+    <button type="button" data-tab="books" role="tab" aria-selected="false">Books</button>
   </div>
 
   <div class="view active" id="view-rsvps" role="tabpanel">
@@ -236,6 +237,12 @@
   <div class="view" id="view-lanterns" role="tabpanel">
     <div id="lanterns-wrap">
       <div class="empty" id="lanterns-empty">Loading…</div>
+    </div>
+  </div>
+
+  <div class="view" id="view-books" role="tabpanel">
+    <div id="books-wrap">
+      <div class="empty" id="books-empty">Loading…</div>
     </div>
   </div>
 </section>
@@ -279,10 +286,12 @@
   const views = {
     rsvps: document.getElementById("view-rsvps"),
     lanterns: document.getElementById("view-lanterns"),
+    books: document.getElementById("view-books"),
   };
   const wraps = {
     rsvps: document.getElementById("rsvps-wrap"),
     lanterns: document.getElementById("lanterns-wrap"),
+    books: document.getElementById("books-wrap"),
   };
 
   const editDlg = document.getElementById("edit-dlg");
@@ -297,6 +306,7 @@
   let activeTab = "rsvps";
   let rsvpData = null;
   let lanternData = null;
+  let bookClaimData = null;
   let editingId = null;
   let selectedRsvpIds = new Set();
 
@@ -338,6 +348,10 @@
     } else if (activeTab === "lanterns" && lanternData) {
       const total = (lanternData.lanterns || []).length;
       statsEl.innerHTML = "<b>" + total + "</b> lanterns";
+      exportBtn.classList.add("hidden");
+    } else if (activeTab === "books" && bookClaimData) {
+      const total = (bookClaimData.claims || []).length;
+      statsEl.innerHTML = "<b>" + total + "</b> book claims";
       exportBtn.classList.add("hidden");
     } else {
       statsEl.textContent = "";
@@ -682,6 +696,91 @@
     }
   }
 
+  async function loadBookClaims() {
+    bookClaimData = await fetchJson("/api/book-claims", { headers: authHeaders() });
+    renderBookClaims();
+    if (activeTab === "books") updateStats();
+  }
+
+  function renderBookClaims() {
+    const claims = Array.isArray(bookClaimData?.claims) ? bookClaimData.claims : [];
+    wraps.books.innerHTML = "";
+    if (!claims.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "No book claims yet.";
+      wraps.books.appendChild(empty);
+      return;
+    }
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML =
+      "<tr><th>When</th><th>Book</th><th>Format</th><th>Name</th><th>Contact</th><th></th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const r of claims) {
+      const tr = document.createElement("tr");
+      tr.appendChild(td("when", formatWhen(r.created_at)));
+
+      const tdBook = document.createElement("td");
+      const tt = document.createElement("div");
+      tt.textContent = r.book_title || "";
+      const aa = document.createElement("div");
+      aa.className = "guests";
+      aa.textContent = r.book_author || "";
+      tdBook.appendChild(tt);
+      tdBook.appendChild(aa);
+      tr.appendChild(tdBook);
+
+      const fmt = String(r.format || "");
+      tr.appendChild(td("size", fmt.charAt(0).toUpperCase() + fmt.slice(1)));
+      tr.appendChild(td("", r.name || ""));
+
+      const contact = r.email || r.address || "";
+      const tdContact = td("email", truncate(contact, 80));
+      if (contact.length > 80) tdContact.title = contact;
+      tr.appendChild(tdContact);
+
+      const tdAct = document.createElement("td");
+      tdAct.className = "actions";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Remove";
+      btn.addEventListener("click", () => deleteBookClaim(r.id, btn));
+      tdAct.appendChild(btn);
+      tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    wraps.books.appendChild(table);
+  }
+
+  async function deleteBookClaim(id, btn) {
+    if (!confirm("Remove this book claim?")) return;
+    btn.disabled = true;
+    btn.textContent = "Removing…";
+    try {
+      const res = await fetch("/api/book-claims/" + id, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (res.status === 401) {
+        sessionStorage.removeItem(TOKEN_KEY);
+        showGate("Session expired.");
+        return;
+      }
+      if (!res.ok) throw new Error("server_" + res.status);
+      bookClaimData.claims = (bookClaimData.claims || []).filter((c) => c.id !== id);
+      renderBookClaims();
+      updateStats();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = "Remove";
+      alert("Couldn't remove that claim. Try again.");
+    }
+  }
+
   function td(cls, text) {
     const el = document.createElement("td");
     if (cls) el.className = cls;
@@ -775,6 +874,12 @@
         else wraps.lanterns.innerHTML = '<div class="empty">Couldn\\u2019t load lanterns.</div>';
       });
     }
+    if (tab === "books" && !bookClaimData) {
+      loadBookClaims().catch((err) => {
+        if (err.message === "unauthorized") showGate("Session expired.");
+        else wraps.books.innerHTML = '<div class="empty">Couldn\\u2019t load book claims.</div>';
+      });
+    }
   }
 
   async function tryToken(t, isInitial) {
@@ -811,6 +916,7 @@
     token = "";
     rsvpData = null;
     lanternData = null;
+    bookClaimData = null;
     editingId = null;
     selectedRsvpIds.clear();
     if (editDlg.open) editDlg.close();
