@@ -420,5 +420,242 @@
 
 <script defer type="text/javascript" src="https://control.resi.io/webplayer/page.min.js"></script>
 
+<script>
+(function () {
+  const POST_PW_KEY = "lantern-wall::post-password";
+
+  // Mirror of the BOOKS table in src/worker.js. Server is the source of
+  // truth for storage; this list drives the cards + synopses.
+  const BOOKS = [
+    {
+      id: "walking",
+      title: "Walking with God through Pain and Suffering",
+      author: "Timothy Keller",
+      badge: "Pastoral",
+      synopsis: "A wide, patient survey of how believers across centuries have understood suffering — and a steady, pastoral guide to finding God present in the worst rooms of a life."
+    },
+    {
+      id: "mere",
+      title: "Mere Christianity",
+      author: "C. S. Lewis",
+      badge: "Classic",
+      synopsis: "Adapted from wartime radio talks: a clear, generous case for the Christian faith and what unites believers across traditions. A book Melvin returned to more than once."
+    },
+    {
+      id: "proof",
+      title: "Proof of Heaven",
+      author: "Eben Alexander, M.D.",
+      badge: "Memoir",
+      synopsis: "A Harvard-trained neurosurgeon's first-person account of a week-long coma — and what it convinced him, against every prior instinct, about consciousness and the life to come."
+    },
+    {
+      id: "imagine",
+      title: "Imagine Heaven",
+      author: "John Burke",
+      badge: "Survey",
+      synopsis: "A careful read of dozens of near-death accounts alongside what Scripture actually describes about heaven. Surprising overlaps; sturdier hope."
+    },
+    {
+      id: "making",
+      title: "Making Sense of God",
+      author: "Timothy Keller",
+      badge: "Apologetics",
+      synopsis: "Why faith remains rational — and necessary — in a secular age. Keller meets the foundational questions before doctrine, with care for the honest skeptic."
+    }
+  ];
+
+  const grid = document.getElementById("book-grid");
+  const claimForm = document.getElementById("claim-form");
+  const selDisplay = document.getElementById("sel-display");
+  const formatRow = document.getElementById("format-row");
+  const condAddress = document.getElementById("cond-address");
+  const condEmail = document.getElementById("cond-email");
+  const submitBtn = document.getElementById("claim-submit");
+  const claimSuccess = document.getElementById("claim-success");
+  const resetBtn = document.getElementById("claim-reset");
+  const claimAddress = document.getElementById("claim-address");
+  const claimEmail = document.getElementById("claim-email");
+  const claimName = document.getElementById("claim-name");
+  const claimPw = document.getElementById("claim-pw");
+  const claimErr = document.getElementById("claim-err");
+
+  if (!grid || !claimForm) return;
+
+  let selectedBook = null;
+
+  // Build cards
+  BOOKS.forEach((b) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "book-card";
+    card.dataset.book = b.id;
+    card.setAttribute("role", "radio");
+    card.setAttribute("aria-checked", "false");
+    card.innerHTML =
+      '<div class="check" aria-hidden="true">✓</div>' +
+      '<div class="cover">' +
+        '<div class="corner"></div>' +
+        '<div class="author-stamp">' + b.author.replace(/\s+/g, "<br>") + '</div>' +
+        '<div>' +
+          '<div class="title">' + b.title + '</div>' +
+          '<div class="rule"></div>' +
+        '</div>' +
+        '<div class="badge">' + b.badge + '</div>' +
+      '</div>' +
+      '<div class="meta">' +
+        '<div class="a">' + b.author + '</div>' +
+        '<div class="t">' + b.title + '</div>' +
+      '</div>' +
+      '<div class="syn">' + b.synopsis + '</div>';
+    card.addEventListener("click", () => selectBook(b.id));
+    grid.appendChild(card);
+  });
+
+  function selectBook(id) {
+    selectedBook = BOOKS.find((b) => b.id === id) || null;
+    grid.querySelectorAll(".book-card").forEach((c) => {
+      const on = c.dataset.book === id;
+      c.classList.toggle("selected", on);
+      c.setAttribute("aria-checked", on ? "true" : "false");
+    });
+    if (selectedBook) {
+      selDisplay.classList.add("has");
+      selDisplay.innerHTML =
+        '<span class="lbl">Your selection</span>' +
+        '<span class="nm"></span>' +
+        '<span class="au"></span>';
+      selDisplay.querySelector(".nm").textContent = selectedBook.title;
+      selDisplay.querySelector(".au").textContent = selectedBook.author;
+    } else {
+      selDisplay.classList.remove("has");
+      selDisplay.textContent = "— Select a book above to begin —";
+    }
+    updateSubmitState();
+  }
+
+  // Format radio
+  formatRow.addEventListener("change", (e) => {
+    if (e.target.name !== "format") return;
+    const val = e.target.value;
+    formatRow.querySelectorAll("label").forEach((l) => {
+      l.classList.toggle("active", l.dataset.fmt === val);
+    });
+    if (val === "paperback") {
+      condAddress.classList.add("show");
+      condEmail.classList.remove("show");
+      claimAddress.required = true;
+      claimEmail.required = false;
+      claimEmail.value = "";
+    } else {
+      condEmail.classList.add("show");
+      condAddress.classList.remove("show");
+      claimEmail.required = true;
+      claimAddress.required = false;
+      claimAddress.value = "";
+    }
+    updateSubmitState();
+  });
+
+  claimForm.addEventListener("input", updateSubmitState);
+
+  function updateSubmitState() {
+    const name = claimName.value.trim();
+    const pw = claimPw.value.trim();
+    const fmt = (claimForm.elements.format || {}).value;
+    const okFormat = !!fmt;
+    const okContact = fmt === "paperback"
+      ? claimAddress.value.trim().length > 6
+      : (fmt === "audiobook" || fmt === "kindle")
+        ? /.+@.+\..+/.test(claimEmail.value.trim())
+        : false;
+    submitBtn.disabled = !(selectedBook && name && pw && okFormat && okContact);
+  }
+
+  // Prefill passphrase from sessionStorage if the lantern wall already cached it.
+  try {
+    const cached = sessionStorage.getItem(POST_PW_KEY);
+    if (cached) claimPw.value = cached;
+  } catch (_) { /* ignore */ }
+
+  claimForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (submitBtn.disabled) return;
+    claimErr.textContent = "";
+
+    const fmt = claimForm.elements.format.value;
+    const payload = {
+      bookId: selectedBook.id,
+      format: fmt,
+      name: claimName.value.trim(),
+    };
+    if (fmt === "paperback") payload.address = claimAddress.value.trim();
+    else payload.email = claimEmail.value.trim();
+
+    const pw = claimPw.value.trim();
+    const originalLabel = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+
+    let res;
+    try {
+      res = await fetch("/api/book-claims", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Post-Password": pw },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      submitBtn.textContent = originalLabel;
+      submitBtn.disabled = false;
+      claimErr.textContent = "Couldn't reach the server — please try again.";
+      return;
+    }
+
+    if (res.status === 401) {
+      submitBtn.textContent = originalLabel;
+      submitBtn.disabled = false;
+      claimErr.textContent = "That passphrase didn't match — try again.";
+      try { sessionStorage.removeItem(POST_PW_KEY); } catch (_) {}
+      claimPw.focus();
+      return;
+    }
+
+    if (!res.ok) {
+      submitBtn.textContent = originalLabel;
+      submitBtn.disabled = false;
+      let msg = "Something didn't look right — please check your details and try again.";
+      try {
+        const data = await res.json();
+        if (data && data.error) msg = data.error;
+      } catch (_) {}
+      claimErr.textContent = msg;
+      return;
+    }
+
+    try { sessionStorage.setItem(POST_PW_KEY, pw); } catch (_) {}
+    claimForm.style.display = "none";
+    claimSuccess.classList.add("show");
+  });
+
+  resetBtn.addEventListener("click", () => {
+    claimForm.reset();
+    claimForm.style.display = "";
+    claimSuccess.classList.remove("show");
+    formatRow.querySelectorAll("label").forEach((l) => l.classList.remove("active"));
+    condAddress.classList.remove("show");
+    condEmail.classList.remove("show");
+    claimErr.textContent = "";
+    submitBtn.textContent = "Send it to me";
+    selectBook(null);
+    submitBtn.disabled = true;
+    // Re-prefill the passphrase since reset() clears it.
+    try {
+      const cached = sessionStorage.getItem(POST_PW_KEY);
+      if (cached) claimPw.value = cached;
+    } catch (_) {}
+    updateSubmitState();
+  });
+})();
+</script>
+
 </body>
 </html>
