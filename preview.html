@@ -114,87 +114,87 @@
   .gal-cta a:hover { background: var(--brass); color: var(--navy-deep); }
 
   .books { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); border-top: 1px solid var(--navy-line); }
-.books-intro { max-width: 720px; margin: -28px auto 56px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.55; color: var(--ivory-soft); }
+  .books-intro { max-width: 720px; margin: -28px auto 56px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.55; color: var(--ivory-soft); }
 
-.books-content { max-width: 1240px; margin: 0 auto; }
-.book-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; margin-bottom: 56px; }
-@media (max-width: 1000px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 640px) { .book-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
+  .books-content { max-width: 1240px; margin: 0 auto; }
+  .book-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; margin-bottom: 56px; }
+  @media (max-width: 1000px) { .book-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) { .book-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
 
-.book-card { position: relative; background: transparent; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; transition: transform 0.25s ease; display: flex; flex-direction: column; }
-.book-card:hover { transform: translateY(-3px); }
-.book-card .cover { aspect-ratio: 2 / 3; position: relative; padding: 18px 16px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 1px solid var(--navy-line); box-shadow: 0 14px 36px rgba(0,0,0,0.45); transition: border-color 0.25s; }
-.book-card:hover .cover, .book-card.selected .cover { border-color: var(--brass); }
-.book-card .cover::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(243,234,215,0.025) 14px 15px); pointer-events: none; }
-.book-card .cover .corner { position: absolute; top: 7px; right: 7px; width: 14px; height: 14px; border: 1px solid currentColor; opacity: 0.55; }
-.book-card .cover .author-stamp { font-size: 9px; letter-spacing: 0.34em; text-transform: uppercase; font-weight: 600; position: relative; z-index: 1; line-height: 1.4; }
-.book-card .cover .title { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(15px, 1.3vw, 19px); line-height: 1.1; position: relative; z-index: 1; }
-.book-card .cover .title em { font-style: italic; font-weight: 400; }
-.book-card .cover .rule { width: 26px; height: 1px; background: currentColor; opacity: 0.6; position: relative; z-index: 1; margin-top: 6px; }
-.book-card .cover .badge { position: absolute; bottom: 14px; right: 14px; font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.65; z-index: 1; }
+  .book-card { position: relative; background: transparent; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; transition: transform 0.25s ease; display: flex; flex-direction: column; }
+  .book-card:hover { transform: translateY(-3px); }
+  .book-card .cover { aspect-ratio: 2 / 3; position: relative; padding: 18px 16px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 1px solid var(--navy-line); box-shadow: 0 14px 36px rgba(0,0,0,0.45); transition: border-color 0.25s; }
+  .book-card:hover .cover, .book-card.selected .cover { border-color: var(--brass); }
+  .book-card .cover::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(243,234,215,0.025) 14px 15px); pointer-events: none; }
+  .book-card .cover .corner { position: absolute; top: 7px; right: 7px; width: 14px; height: 14px; border: 1px solid currentColor; opacity: 0.55; }
+  .book-card .cover .author-stamp { font-size: 9px; letter-spacing: 0.34em; text-transform: uppercase; font-weight: 600; position: relative; z-index: 1; line-height: 1.4; }
+  .book-card .cover .title { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(15px, 1.3vw, 19px); line-height: 1.1; position: relative; z-index: 1; }
+  .book-card .cover .title em { font-style: italic; font-weight: 400; }
+  .book-card .cover .rule { width: 26px; height: 1px; background: currentColor; opacity: 0.6; position: relative; z-index: 1; margin-top: 6px; }
+  .book-card .cover .badge { position: absolute; bottom: 14px; right: 14px; font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.65; z-index: 1; }
 
-.book-card[data-book="walking"] .cover { background: linear-gradient(170deg, #1a2940 0%, #0a1422 100%); color: #e2c089; }
-.book-card[data-book="mere"] .cover    { background: linear-gradient(170deg, #142133 0%, #1d3554 100%); color: #d8cdb4; }
-.book-card[data-book="proof"] .cover   { background: linear-gradient(170deg, #16263e 0%, #20354f 100%); color: #e2c089; }
-.book-card[data-book="imagine"] .cover { background: linear-gradient(170deg, #1d3554 0%, #0e1825 100%); color: #d8cdb4; }
-.book-card[data-book="making"] .cover  { background: linear-gradient(170deg, #0e1825 0%, #1a2940 100%); color: #e2c089; }
+  .book-card[data-book="walking"] .cover { background: linear-gradient(170deg, #1a2940 0%, #0a1422 100%); color: #e2c089; }
+  .book-card[data-book="mere"] .cover    { background: linear-gradient(170deg, #142133 0%, #1d3554 100%); color: #d8cdb4; }
+  .book-card[data-book="proof"] .cover   { background: linear-gradient(170deg, #16263e 0%, #20354f 100%); color: #e2c089; }
+  .book-card[data-book="imagine"] .cover { background: linear-gradient(170deg, #1d3554 0%, #0e1825 100%); color: #d8cdb4; }
+  .book-card[data-book="making"] .cover  { background: linear-gradient(170deg, #0e1825 0%, #1a2940 100%); color: #e2c089; }
 
-.book-card .meta { padding: 14px 4px 4px; }
-.book-card .meta .a { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); margin-bottom: 4px; }
-.book-card .meta .t { font-family: "Cormorant Garamond", serif; font-size: 15px; line-height: 1.25; color: var(--ivory); }
-.book-card .syn { padding: 12px 4px 0; font-size: 12.5px; line-height: 1.55; color: var(--ivory-soft); max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.25s ease; }
-.book-card:hover .syn, .book-card.selected .syn, .book-card:focus-visible .syn { max-height: 320px; opacity: 1; padding-top: 12px; }
-@media (max-width: 640px) { .book-card .syn { max-height: 320px; opacity: 1; padding-top: 12px; } }
+  .book-card .meta { padding: 14px 4px 4px; }
+  .book-card .meta .a { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); margin-bottom: 4px; }
+  .book-card .meta .t { font-family: "Cormorant Garamond", serif; font-size: 15px; line-height: 1.25; color: var(--ivory); }
+  .book-card .syn { padding: 12px 4px 0; font-size: 12.5px; line-height: 1.55; color: var(--ivory-soft); max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.25s ease; }
+  .book-card:hover .syn, .book-card.selected .syn, .book-card:focus-visible .syn { max-height: 320px; opacity: 1; padding-top: 12px; }
+  @media (max-width: 640px) { .book-card .syn { max-height: 320px; opacity: 1; padding-top: 12px; } }
 
-.book-card .check { position: absolute; top: 10px; left: 10px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--brass); background: var(--navy-deep); display: grid; place-items: center; color: var(--brass-light); opacity: 0; transition: opacity 0.2s; z-index: 3; font-size: 12px; line-height: 1; }
-.book-card.selected .check { opacity: 1; }
+  .book-card .check { position: absolute; top: 10px; left: 10px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--brass); background: var(--navy-deep); display: grid; place-items: center; color: var(--brass-light); opacity: 0; transition: opacity 0.2s; z-index: 3; font-size: 12px; line-height: 1; }
+  .book-card.selected .check { opacity: 1; }
 
-.claim { max-width: 760px; margin: 0 auto; border: 1px solid var(--brass); padding: 48px; background: rgba(10,20,34,0.6); position: relative; }
-.claim::before, .claim::after { content: ""; position: absolute; width: 18px; height: 18px; border: 1px solid var(--brass); }
-.claim::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
-.claim::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
-@media (max-width: 640px) { .claim { padding: 32px 22px; } }
-.claim h3 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(24px, 2.5vw, 30px); margin: 0 0 6px; text-align: center; }
-.claim h3 em { font-style: italic; color: var(--brass-light); font-weight: 400; }
-.claim .lead { color: var(--ivory-soft); font-size: 14px; text-align: center; max-width: 460px; margin: 0 auto 36px; line-height: 1.55; }
+  .claim { max-width: 760px; margin: 0 auto; border: 1px solid var(--brass); padding: 48px; background: rgba(10,20,34,0.6); position: relative; }
+  .claim::before, .claim::after { content: ""; position: absolute; width: 18px; height: 18px; border: 1px solid var(--brass); }
+  .claim::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .claim::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  @media (max-width: 640px) { .claim { padding: 32px 22px; } }
+  .claim h3 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(24px, 2.5vw, 30px); margin: 0 0 6px; text-align: center; }
+  .claim h3 em { font-style: italic; color: var(--brass-light); font-weight: 400; }
+  .claim .lead { color: var(--ivory-soft); font-size: 14px; text-align: center; max-width: 460px; margin: 0 auto 36px; line-height: 1.55; }
 
-.selected-display { padding: 16px 18px; border: 1px dashed var(--navy-line); color: var(--muted); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; text-align: center; margin-bottom: 28px; transition: all 0.25s; }
-.selected-display.has { color: var(--ivory); border-style: solid; border-color: var(--brass); background: rgba(200,153,104,0.06); padding: 18px 20px; text-align: left; }
-.selected-display.has .lbl { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 6px; font-weight: 500; }
-.selected-display.has .nm { font-family: "Cormorant Garamond", serif; font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--ivory); line-height: 1.25; }
-.selected-display.has .au { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin-top: 4px; }
+  .selected-display { padding: 16px 18px; border: 1px dashed var(--navy-line); color: var(--muted); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; text-align: center; margin-bottom: 28px; transition: all 0.25s; }
+  .selected-display.has { color: var(--ivory); border-style: solid; border-color: var(--brass); background: rgba(200,153,104,0.06); padding: 18px 20px; text-align: left; }
+  .selected-display.has .lbl { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 6px; font-weight: 500; }
+  .selected-display.has .nm { font-family: "Cormorant Garamond", serif; font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--ivory); line-height: 1.25; }
+  .selected-display.has .au { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin-top: 4px; }
 
-.field { margin-bottom: 22px; }
-.field > label { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
-.field input[type="text"], .field input[type="email"], .field input[type="password"], .field textarea { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--navy-line); padding: 10px 0; color: var(--ivory); font: inherit; font-size: 16px; outline: none; transition: border-color 0.2s; font-family: inherit; }
-.field input:focus, .field textarea:focus { border-color: var(--brass); }
-.field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
-.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
-.field-err { color: #e2806c; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 8px; min-height: 1em; }
+  .field { margin-bottom: 22px; }
+  .field > label { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+  .field input[type="text"], .field input[type="email"], .field input[type="password"], .field textarea { width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--navy-line); padding: 10px 0; color: var(--ivory); font: inherit; font-size: 16px; outline: none; transition: border-color 0.2s; font-family: inherit; }
+  .field input:focus, .field textarea:focus { border-color: var(--brass); }
+  .field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+  .field-err { color: #e2806c; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 8px; min-height: 1em; }
 
-.format-row { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--navy-line); position: relative; }
-.format-row label { padding: 14px 8px; text-align: center; cursor: pointer; border-right: 1px solid var(--navy-line); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ivory-soft); transition: all 0.2s; user-select: none; }
-.format-row label:last-child { border-right: 0; }
-.format-row label:hover:not(.active) { color: var(--brass-light); background: rgba(200,153,104,0.04); }
-.format-row label.active { background: var(--brass); color: var(--navy-deep); font-weight: 600; }
-.format-row input { position: absolute; opacity: 0; pointer-events: none; }
+  .format-row { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--navy-line); position: relative; }
+  .format-row label { padding: 14px 8px; text-align: center; cursor: pointer; border-right: 1px solid var(--navy-line); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ivory-soft); transition: all 0.2s; user-select: none; }
+  .format-row label:last-child { border-right: 0; }
+  .format-row label:hover:not(.active) { color: var(--brass-light); background: rgba(200,153,104,0.04); }
+  .format-row label.active { background: var(--brass); color: var(--navy-deep); font-weight: 600; }
+  .format-row input { position: absolute; opacity: 0; pointer-events: none; }
 
-.conditional { display: none; animation: fadein 0.3s ease; }
-.conditional.show { display: block; }
-@keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .conditional { display: none; animation: fadein 0.3s ease; }
+  .conditional.show { display: block; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-.claim-actions { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; }
-.claim-actions .note { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
-.claim button[type="submit"] { background: var(--brass); color: var(--navy-deep); border: 0; padding: 16px 36px; font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-.claim button[type="submit"]:hover:not(:disabled) { background: var(--brass-light); }
-.claim button[type="submit"]:disabled { background: var(--navy-line); color: var(--muted); cursor: not-allowed; }
+  .claim-actions { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .claim-actions .note { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+  .claim button[type="submit"] { background: var(--brass); color: var(--navy-deep); border: 0; padding: 16px 36px; font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .claim button[type="submit"]:hover:not(:disabled) { background: var(--brass-light); }
+  .claim button[type="submit"]:disabled { background: var(--navy-line); color: var(--muted); cursor: not-allowed; }
 
-.claim-success { display: none; text-align: center; padding: 24px 12px; }
-.claim-success.show { display: block; }
-.claim-success .seal { width: 72px; height: 72px; border: 1px solid var(--brass); margin: 0 auto 22px; display: grid; place-items: center; color: var(--brass-light); font-family: "Cormorant Garamond", serif; font-size: 30px; font-style: italic; }
-.claim-success h3 { margin-bottom: 10px; }
-.claim-success p { color: var(--ivory-soft); max-width: 460px; margin: 0 auto; line-height: 1.6; font-size: 14px; }
-.claim-success .reset { margin-top: 28px; color: var(--brass-light); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; background: transparent; border: 0; cursor: pointer; border-bottom: 1px solid var(--brass); padding: 4px 0; font-family: inherit; }
+  .claim-success { display: none; text-align: center; padding: 24px 12px; }
+  .claim-success.show { display: block; }
+  .claim-success .seal { width: 72px; height: 72px; border: 1px solid var(--brass); margin: 0 auto 22px; display: grid; place-items: center; color: var(--brass-light); font-family: "Cormorant Garamond", serif; font-size: 30px; font-style: italic; }
+  .claim-success h3 { margin-bottom: 10px; }
+  .claim-success p { color: var(--ivory-soft); max-width: 460px; margin: 0 auto; line-height: 1.6; font-size: 14px; }
+  .claim-success .reset { margin-top: 28px; color: var(--brass-light); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; background: transparent; border: 0; cursor: pointer; border-bottom: 1px solid var(--brass); padding: 4px 0; font-family: inherit; }
 
   .lanterns { background: radial-gradient(ellipse at 50% 100%, #1a2c45 0%, var(--navy-deep) 70%); }
 
@@ -360,7 +360,7 @@
 
       <div class="field">
         <label for="claim-name">Your name</label>
-        <input type="text" id="claim-name" name="name" placeholder="First and last" required>
+        <input type="text" id="claim-name" name="name" placeholder="First and last" autocomplete="name" required>
       </div>
 
       <div class="conditional" id="cond-address">
@@ -373,7 +373,7 @@
       <div class="conditional" id="cond-email">
         <div class="field">
           <label for="claim-email">Email address</label>
-          <input type="email" id="claim-email" name="email" placeholder="So we can send the download link or gift code">
+          <input type="email" id="claim-email" name="email" placeholder="So we can send the download link or gift code" autocomplete="email">
         </div>
       </div>
 
