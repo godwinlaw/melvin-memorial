@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A memorial site for Captain Melvin Lum, deployed as a Cloudflare Worker (`wrangler.jsonc`, `src/worker.js`). `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). The Worker also exposes `/api/rsvp` (POST, public + Turnstile), `/api/rsvps` (GET, admin), `/api/lanterns` (GET public; POST gated by post password; DELETE :id admin), and `/media/:key` (GET public, R2-backed).
+A memorial site for Captain Melvin Lum, deployed as a Cloudflare Worker (`wrangler.jsonc`, `src/worker.js`). `index.html` is the memorial itself, served at `/`; it checks a `sessionStorage` unlock flag at the top of `<head>` and `location.replace`s to `login.html` if the flag is missing. `login.html` is the password gate; on success it sets the flag and redirects to `index.html` (`/`). The Worker also exposes `/api/rsvp` (POST, public + Turnstile), `/api/rsvps` (GET, admin), `/api/lanterns` (GET public; POST gated by post password; DELETE :id admin), `/api/book-claims` (POST gated by the same post password as lanterns; GET admin; DELETE :id admin), and `/media/:key` (GET public, R2-backed).
 
 There is no client build step. Static assets are served via the Worker's `ASSETS` binding; the Worker code itself is plain ES module that wrangler ships as-is. Local dev: `wrangler dev` (apply migrations first with `wrangler d1 migrations apply melvin-rsvps --local`).
 
@@ -21,7 +21,7 @@ To rotate any of them, see `docs/RSVP_SETUP.md`.
 ```
 index.html  the memorial, served at / — page-specific styles inline, content sections, custom-element instances
 login.html  password gate — redirects to / on unlock
-admin.html  token-gated panel for RSVPs + Lanterns; tabs share the same Bearer token
+admin.html  token-gated panel for RSVPs, Lanterns, and Book Claims; tabs share the same Bearer token
 src/worker.js   Cloudflare Worker — API routes + ASSETS fallback
 migrations/     D1 SQL migrations (rsvps + lanterns)
 styles/shared.css  cross-section primitives (.block, .section-head, .gal-grid, .vid-grid, .tl-rail, .notify-form)
@@ -61,3 +61,4 @@ Autonomous custom element for the RSVP dialog. Renders a Turnstile widget in lig
 - Adding a new image slot: give it a fresh `id`, size it via the parent CSS (slot inherits container width/height), and remember it will only be fillable inside the omelette runtime.
 - Adding a new section: follow the `<section class="block …">` + `.section-head` (`.section-num` + `.section-meta`) pattern already used in `index.html`; theme tokens come from the page-level `:root` block at the top of the file.
 - Page-specific styling lives inline in `index.html`; only put rules in `styles/shared.css` if they are reusable primitives.
+- The "Books" gift section lives only in `preview.html` (not `index.html`). The book id → title/author table is duplicated server-side in `src/worker.js` (`BOOKS` constant) and client-side at the top of `preview.html`'s books `<script>`. If the title/author of a book changes, update both. Submissions go through `POST /api/book-claims` with `X-Post-Password` (the same `POST_PASSWORD` lanterns use), and admins manage them under the Books tab in `admin.html`.
