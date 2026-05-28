@@ -671,12 +671,6 @@ async function handleCreateBookClaim(request, env) {
     return jsonResponse({ error: "Expected application/json" }, 415);
   }
 
-  const presented = request.headers.get("x-post-password") ?? "";
-  const expected = env.POST_PASSWORD ?? "";
-  if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
-  }
-
   let body;
   try {
     body = await request.json();
@@ -685,6 +679,17 @@ async function handleCreateBookClaim(request, env) {
   }
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return jsonResponse({ error: "Body must be a JSON object" }, 400);
+  }
+
+  const turnstileToken =
+    typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : "";
+  if (!turnstileToken) {
+    return jsonResponse({ error: "Bot check missing." }, 401);
+  }
+  const ip = request.headers.get("cf-connecting-ip") ?? null;
+  const turnstileOk = await verifyTurnstile(turnstileToken, env, ip);
+  if (!turnstileOk) {
+    return jsonResponse({ error: "Bot check failed." }, 401);
   }
 
   const bookId = typeof body.bookId === "string" ? body.bookId.trim() : "";

@@ -14,6 +14,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles/shared.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="scripts/rsvp-config.js"></script>
 <script src="scripts/lantern-wall.js"></script>
 <style>
   :root {
@@ -114,7 +116,10 @@
   .gal-cta a:hover { background: var(--brass); color: var(--navy-deep); }
 
   .books { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); border-top: 1px solid var(--navy-line); }
-  .books-intro { max-width: 720px; margin: -28px auto 56px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.55; color: var(--ivory-soft); }
+  .books-intro { max-width: 720px; margin: -28px auto 18px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.55; color: var(--ivory-soft); }
+  .books-intro + .books-intro { margin-top: 0; margin-bottom: 56px; font-size: 21px; }
+  .books-intro a { color: var(--brass); text-decoration: underline; text-underline-offset: 3px; }
+  .books-intro a:hover { color: var(--brass-light); }
 
   .books-content { max-width: 1240px; margin: 0 auto; }
   .book-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; margin-bottom: 56px; }
@@ -123,21 +128,9 @@
 
   .book-card { position: relative; background: transparent; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; transition: transform 0.25s ease; display: flex; flex-direction: column; }
   .book-card:hover { transform: translateY(-3px); }
-  .book-card .cover { aspect-ratio: 2 / 3; position: relative; padding: 18px 16px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; border: 1px solid var(--navy-line); box-shadow: 0 14px 36px rgba(0,0,0,0.45); transition: border-color 0.25s; }
+  .book-card .cover { aspect-ratio: 2 / 3; position: relative; overflow: hidden; border: 1px solid var(--navy-line); box-shadow: 0 14px 36px rgba(0,0,0,0.45); transition: border-color 0.25s; background: #0a1422; }
   .book-card:hover .cover, .book-card.selected .cover { border-color: var(--brass); }
-  .book-card .cover::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 14px, rgba(243,234,215,0.025) 14px 15px); pointer-events: none; }
-  .book-card .cover .corner { position: absolute; top: 7px; right: 7px; width: 14px; height: 14px; border: 1px solid currentColor; opacity: 0.55; }
-  .book-card .cover .author-stamp { font-size: 9px; letter-spacing: 0.34em; text-transform: uppercase; font-weight: 600; position: relative; z-index: 1; line-height: 1.4; }
-  .book-card .cover .title { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(15px, 1.3vw, 19px); line-height: 1.1; position: relative; z-index: 1; }
-  .book-card .cover .title em { font-style: italic; font-weight: 400; }
-  .book-card .cover .rule { width: 26px; height: 1px; background: currentColor; opacity: 0.6; position: relative; z-index: 1; margin-top: 6px; }
-  .book-card .cover .badge { position: absolute; bottom: 14px; right: 14px; font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.65; z-index: 1; }
-
-  .book-card[data-book="walking"] .cover { background: linear-gradient(170deg, #1a2940 0%, #0a1422 100%); color: #e2c089; }
-  .book-card[data-book="mere"] .cover    { background: linear-gradient(170deg, #142133 0%, #1d3554 100%); color: #d8cdb4; }
-  .book-card[data-book="proof"] .cover   { background: linear-gradient(170deg, #16263e 0%, #20354f 100%); color: #e2c089; }
-  .book-card[data-book="imagine"] .cover { background: linear-gradient(170deg, #1d3554 0%, #0e1825 100%); color: #d8cdb4; }
-  .book-card[data-book="making"] .cover  { background: linear-gradient(170deg, #0e1825 0%, #1a2940 100%); color: #e2c089; }
+  .book-card .cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   .book-card .meta { padding: 14px 4px 4px; }
   .book-card .meta .a { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--brass); margin-bottom: 4px; }
@@ -161,8 +154,8 @@
   .selected-display { padding: 16px 18px; border: 1px dashed var(--navy-line); color: var(--muted); font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; text-align: center; margin-bottom: 28px; transition: all 0.25s; }
   .selected-display.has { color: var(--ivory); border-style: solid; border-color: var(--brass); background: rgba(200,153,104,0.06); padding: 18px 20px; text-align: left; }
   .selected-display.has .lbl { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 6px; font-weight: 500; }
-  .selected-display.has .nm { font-family: "Cormorant Garamond", serif; font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--ivory); line-height: 1.25; }
-  .selected-display.has .au { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin-top: 4px; }
+  .selected-display.has .nm { display: block; font-family: "Cormorant Garamond", serif; font-size: 19px; letter-spacing: 0; text-transform: none; color: var(--ivory); line-height: 1.25; }
+  .selected-display.has .au { display: block; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); margin-top: 8px; }
 
   .field { margin-bottom: 22px; }
   .field > label { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.32em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
@@ -171,6 +164,8 @@
   .field textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
   .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
   .field-err { color: #e2806c; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; margin-top: 8px; min-height: 1em; }
+  .claim-turnstile { margin-top: 20px; display: flex; justify-content: center; min-height: 65px; }
+  .claim-turnstile-fallback { color: #d99c8a; font-size: 12px; text-align: center; }
 
   .format-row { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--navy-line); position: relative; }
   .format-row label { padding: 14px 8px; text-align: center; cursor: pointer; border-right: 1px solid var(--navy-line); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ivory-soft); transition: all 0.2s; user-select: none; }
@@ -183,8 +178,7 @@
   .conditional.show { display: block; }
   @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
-  .claim-actions { margin-top: 30px; display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; }
-  .claim-actions .note { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); }
+  .claim-actions { margin-top: 30px; display: flex; justify-content: flex-end; align-items: center; gap: 18px; flex-wrap: wrap; }
   .claim button[type="submit"] { background: var(--brass); color: var(--navy-deep); border: 0; padding: 16px 36px; font: inherit; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; cursor: pointer; transition: background 0.2s; }
   .claim button[type="submit"]:hover:not(:disabled) { background: var(--brass-light); }
   .claim button[type="submit"]:disabled { background: var(--navy-line); color: var(--muted); cursor: not-allowed; }
@@ -225,7 +219,7 @@
       <a href="#life">Life</a>
       <a href="#timeline">Timeline</a>
       <a href="#gallery">Photographs</a>
-      <a href="#books">Books</a>
+      <a href="#books">Gift</a>
       <a href="#lanterns">Lanterns</a>
     </nav>
   </div>
@@ -328,10 +322,11 @@
 <section class="block books" id="books">
   <div class="section-head">
     <div class="section-num">06</div>
-    <div class="section-meta"><small>A Gift from the Family</small><h2>Books that helped us <em>look toward home</em></h2></div>
+    <div class="section-meta"><small>A Gift from the Family</small><h2>Books that help us <em>look toward home</em></h2></div>
   </div>
 
-  <p class="books-intro">In the long days since Melvin's passing, these five books have helped our family hold onto — and see more clearly — the hope of heaven. If one of them might do the same for you, please take it with our love. The family will cover the cost.</p>
+  <p class="books-intro">Some of these books are companions for grief. Others make the case for why the Christian hope of eternity is worth taking seriously. Together, they have helped us hold onto something we believe is true: that we will see Melvin again. Whether you're looking for comfort, for answers, or are just plain curious, please take one as our gift to you.</p>
+  <p class="books-intro">If anything you read raises questions, we'd love to chat. Write to us at <a href="mailto:godwin.andrea.law@gmail.com">godwin.andrea.law@gmail.com</a> — we welcome the conversation.</p>
 
   <div class="books-content">
     <div class="book-grid" id="book-grid" role="radiogroup" aria-label="Choose a book">
@@ -340,14 +335,9 @@
 
     <form class="claim" id="claim-form" autocomplete="on">
       <h3>Claim your <em>copy</em></h3>
-      <p class="lead">Choose a book above, pick a format, and tell us where to send it. We'll handle the rest.</p>
+      <p class="lead">Choose a book above, pick a format, and tell us where to send it.</p>
 
       <div class="selected-display" id="sel-display">— Select a book above to begin —</div>
-
-      <div class="field">
-        <label for="claim-pw">Passphrase</label>
-        <input type="password" id="claim-pw" name="passphrase" placeholder="The passphrase from the program" autocomplete="off" spellcheck="false" required>
-      </div>
 
       <div class="field">
         <label>Format</label>
@@ -377,10 +367,11 @@
         </div>
       </div>
 
+      <div class="claim-turnstile" id="claim-turnstile-mount"></div>
+
       <div class="field-err" id="claim-err" aria-live="polite"></div>
 
       <div class="claim-actions">
-        <span class="note">The family covers the cost · One book per guest</span>
         <button type="submit" id="claim-submit" disabled>Send it to me</button>
       </div>
     </form>
@@ -422,45 +413,43 @@
 
 <script>
 (function () {
-  const POST_PW_KEY = "lantern-wall::post-password";
-
   // Mirror of the BOOKS table in src/worker.js. Server is the source of
   // truth for storage; this list drives the cards + synopses.
   const BOOKS = [
     {
-      id: "walking",
-      title: "Walking with God through Pain and Suffering",
-      author: "Timothy Keller",
-      badge: "Pastoral",
-      synopsis: "A wide, patient survey of how believers across centuries have understood suffering — and a steady, pastoral guide to finding God present in the worst rooms of a life."
-    },
-    {
-      id: "mere",
-      title: "Mere Christianity",
-      author: "C. S. Lewis",
-      badge: "Classic",
-      synopsis: "Adapted from wartime radio talks: a clear, generous case for the Christian faith and what unites believers across traditions. A book Melvin returned to more than once."
+      id: "imagine",
+      title: "Imagine Heaven",
+      author: "John Burke",
+      badge: "Survey",
+      synopsis: "Burke surveyed hundreds of near-death accounts and laid them next to what the Bible actually describes about heaven. The overlaps are striking and shows why heaven may be more than just wishful thinking."
     },
     {
       id: "proof",
       title: "Proof of Heaven",
       author: "Eben Alexander, M.D.",
       badge: "Memoir",
-      synopsis: "A Harvard-trained neurosurgeon's first-person account of a week-long coma — and what it convinced him, against every prior instinct, about consciousness and the life to come."
+      synopsis: "A Harvard-trained brain surgeon spent a week in a coma that, by every clinical measure, should have ended him. What he experienced in that time upended everything he thought he knew about consciousness and the life after life."
     },
     {
-      id: "imagine",
-      title: "Imagine Heaven",
-      author: "John Burke",
-      badge: "Survey",
-      synopsis: "A careful read of dozens of near-death accounts alongside what Scripture actually describes about heaven. Surprising overlaps; sturdier hope."
+      id: "walking",
+      title: "Walking with God through Pain and Suffering",
+      author: "Timothy Keller",
+      badge: "Pastoral",
+      synopsis: "Why does a good God allow suffering? Keller tackles a question that is both intellectually perplexing and emotionally fraught. He walks through how thoughtful people across history have wrestled with pain, and how to find God in the middle of it."
     },
     {
       id: "making",
       title: "Making Sense of God",
       author: "Timothy Keller",
       badge: "Apologetics",
-      synopsis: "Why faith remains rational — and necessary — in a secular age. Keller meets the foundational questions before doctrine, with care for the honest skeptic."
+      synopsis: "This one's for the honest skeptic. Keller doesn't start doctrine but with the questions modern life raises - meaning, identity, hope, justice - and asks whether Christianity offers a better answer than the alternatives."
+    },
+    {
+      id: "mere",
+      title: "Mere Christianity",
+      author: "C. S. Lewis",
+      badge: "Classic",
+      synopsis: "Adapted from radio talks Lewis gave during WWII to a country in the dark. In this timeless classic, the mastermind behind Narnia explains what we believe and why we believe in plain English."
     }
   ];
 
@@ -476,12 +465,64 @@
   const claimAddress = document.getElementById("claim-address");
   const claimEmail = document.getElementById("claim-email");
   const claimName = document.getElementById("claim-name");
-  const claimPw = document.getElementById("claim-pw");
   const claimErr = document.getElementById("claim-err");
+  const turnstileMount = document.getElementById("claim-turnstile-mount");
 
   if (!grid || !claimForm) return;
 
   let selectedBook = null;
+  let turnstileToken = "";
+  let turnstileWidgetId = null;
+  const turnstileSiteKey = (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
+
+  function renderTurnstile() {
+    if (!turnstileMount) return;
+    if (!turnstileSiteKey) {
+      turnstileMount.textContent = "Bot check unavailable (site key not configured).";
+      turnstileMount.classList.add("claim-turnstile-fallback");
+      return;
+    }
+    if (turnstileWidgetId !== null) {
+      try { window.turnstile.reset(turnstileWidgetId); } catch (_) {}
+      turnstileToken = "";
+      updateSubmitState();
+      return;
+    }
+    const tryRender = () => {
+      if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
+      try {
+        turnstileWidgetId = window.turnstile.render(turnstileMount, {
+          sitekey: turnstileSiteKey,
+          theme: "dark",
+          callback: (token) => {
+            turnstileToken = String(token || "");
+            updateSubmitState();
+          },
+          "error-callback": () => {
+            turnstileToken = "";
+            updateSubmitState();
+          },
+          "expired-callback": () => {
+            turnstileToken = "";
+            updateSubmitState();
+          },
+        });
+        return true;
+      } catch (err) {
+        console.error("turnstile render failed", err);
+        return false;
+      }
+    };
+    if (tryRender()) return;
+    const start = Date.now();
+    const tick = () => {
+      if (tryRender()) return;
+      if (Date.now() - start < 5000) setTimeout(tick, 100);
+    };
+    setTimeout(tick, 100);
+  }
+
+  renderTurnstile();
 
   // Build cards
   BOOKS.forEach((b) => {
@@ -491,22 +532,34 @@
     card.dataset.book = b.id;
     card.setAttribute("role", "radio");
     card.setAttribute("aria-checked", "false");
-    card.innerHTML =
-      '<div class="check" aria-hidden="true">✓</div>' +
-      '<div class="cover">' +
-        '<div class="corner"></div>' +
-        '<div class="author-stamp">' + b.author.replace(/\s+/g, "<br>") + '</div>' +
-        '<div>' +
-          '<div class="title">' + b.title + '</div>' +
-          '<div class="rule"></div>' +
-        '</div>' +
-        '<div class="badge">' + b.badge + '</div>' +
-      '</div>' +
-      '<div class="meta">' +
-        '<div class="a">' + b.author + '</div>' +
-        '<div class="t">' + b.title + '</div>' +
-      '</div>' +
-      '<div class="syn">' + b.synopsis + '</div>';
+    const check = document.createElement("div");
+    check.className = "check";
+    check.setAttribute("aria-hidden", "true");
+    check.textContent = "✓";
+
+    const cover = document.createElement("div");
+    cover.className = "cover";
+    const img = document.createElement("img");
+    img.src = "assets/book-" + b.id + ".jpg";
+    img.alt = "Cover of " + b.title + " by " + b.author;
+    img.loading = "lazy";
+    cover.appendChild(img);
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const metaA = document.createElement("div");
+    metaA.className = "a";
+    metaA.textContent = b.author;
+    const metaT = document.createElement("div");
+    metaT.className = "t";
+    metaT.textContent = b.title;
+    meta.append(metaA, metaT);
+
+    const syn = document.createElement("div");
+    syn.className = "syn";
+    syn.textContent = b.synopsis;
+
+    card.append(check, cover, meta, syn);
     card.addEventListener("click", () => selectBook(b.id));
     grid.appendChild(card);
   });
@@ -560,7 +613,6 @@
 
   function updateSubmitState() {
     const name = claimName.value.trim();
-    const pw = claimPw.value.trim();
     const fmt = (claimForm.elements.format || {}).value;
     const okFormat = !!fmt;
     const okContact = fmt === "paperback"
@@ -568,14 +620,16 @@
       : (fmt === "audiobook" || fmt === "kindle")
         ? /.+@.+\..+/.test(claimEmail.value.trim())
         : false;
-    submitBtn.disabled = !(selectedBook && name && pw && okFormat && okContact);
+    submitBtn.disabled = !(selectedBook && name && okFormat && okContact && turnstileToken);
   }
 
-  // Prefill passphrase from sessionStorage if the lantern wall already cached it.
-  try {
-    const cached = sessionStorage.getItem(POST_PW_KEY);
-    if (cached) claimPw.value = cached;
-  } catch (_) { /* ignore */ }
+  function resetTurnstile() {
+    if (turnstileWidgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
+      try { window.turnstile.reset(turnstileWidgetId); } catch (_) {}
+    }
+    turnstileToken = "";
+    updateSubmitState();
+  }
 
   claimForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -587,11 +641,11 @@
       bookId: selectedBook.id,
       format: fmt,
       name: claimName.value.trim(),
+      turnstileToken,
     };
     if (fmt === "paperback") payload.address = claimAddress.value.trim();
     else payload.email = claimEmail.value.trim();
 
-    const pw = claimPw.value.trim();
     const originalLabel = submitBtn.textContent;
     submitBtn.disabled = true;
     submitBtn.textContent = "Sending…";
@@ -600,40 +654,38 @@
     try {
       res = await fetch("/api/book-claims", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Post-Password": pw },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
     } catch {
       submitBtn.textContent = originalLabel;
-      submitBtn.disabled = false;
       claimErr.textContent = "Couldn't reach the server — please try again.";
+      resetTurnstile();
       return;
     }
 
     if (res.status === 401) {
       submitBtn.textContent = originalLabel;
-      submitBtn.disabled = false;
-      claimErr.textContent = "That passphrase didn't match — try again.";
-      try { sessionStorage.removeItem(POST_PW_KEY); } catch (_) {}
-      claimPw.focus();
+      claimErr.textContent = "Bot check failed — please try again.";
+      resetTurnstile();
       return;
     }
 
     if (!res.ok) {
       submitBtn.textContent = originalLabel;
-      submitBtn.disabled = false;
       let msg = "Something didn't look right — please check your details and try again.";
       try {
         const data = await res.json();
         if (data && data.error) msg = data.error;
       } catch (_) {}
       claimErr.textContent = msg;
+      resetTurnstile();
       return;
     }
 
-    try { sessionStorage.setItem(POST_PW_KEY, pw); } catch (_) {}
     claimForm.style.display = "none";
     claimSuccess.classList.add("show");
+    resetTurnstile();
   });
 
   resetBtn.addEventListener("click", () => {
@@ -647,11 +699,7 @@
     submitBtn.textContent = "Send it to me";
     selectBook(null);
     submitBtn.disabled = true;
-    // Re-prefill the passphrase since reset() clears it.
-    try {
-      const cached = sessionStorage.getItem(POST_PW_KEY);
-      if (cached) claimPw.value = cached;
-    } catch (_) {}
+    resetTurnstile();
     updateSubmitState();
   });
 })();
