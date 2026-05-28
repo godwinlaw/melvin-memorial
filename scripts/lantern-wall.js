@@ -751,12 +751,8 @@
       if (!msg) return this._showFormError("Please write a message.");
       if (msg.length > MSG_MAX) return this._showFormError(`Message is too long (max ${MSG_MAX}).`);
 
+      // TEMP: lantern post password disabled. Restore the gate to re-enable.
       const password = sessionStorage.getItem(POST_PW_KEY) || "";
-      if (!password) {
-        this._showFormError("");
-        this._gate.open();
-        return;
-      }
 
       const fd = new FormData();
       fd.append("name", name);
