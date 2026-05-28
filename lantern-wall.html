@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Wall — For Melvin</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-deep: #0a1422;
+    --navy: #0f1d31;
+    --brass: #c89968;
+    --brass-light: #e2c089;
+    --ivory: #f3ead7;
+    --ivory-soft: #d8cdb4;
+    --paper-1: #ffd28c;
+    --paper-2: #b97246;
+    --glow: rgba(255,180,100,0.4);
+    --serif: "Cormorant Garamond", "Newsreader", Georgia, serif;
+    --sans: "Inter", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    color: var(--ivory);
+    background:
+      radial-gradient(ellipse at 50% 100%, var(--glow), transparent 65%),
+      radial-gradient(2px 2px at 12% 18%, rgba(255,225,170,0.45), transparent 50%),
+      radial-gradient(1.5px 1.5px at 78% 12%, rgba(255,225,170,0.4), transparent 50%),
+      radial-gradient(1px 1px at 32% 64%, rgba(255,225,170,0.35), transparent 50%),
+      radial-gradient(1.5px 1.5px at 88% 78%, rgba(255,225,170,0.4), transparent 50%),
+      radial-gradient(1px 1px at 50% 38%, rgba(255,225,170,0.3), transparent 50%),
+      radial-gradient(2px 2px at 8% 90%, rgba(255,225,170,0.35), transparent 50%),
+      radial-gradient(1px 1px at 65% 55%, rgba(255,225,170,0.3), transparent 50%),
+      linear-gradient(180deg, #060d18 0%, var(--navy-deep) 60%, #050a13 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  .stage-title {
+    position: fixed; top: 28px; left: 0; right: 0;
+    text-align: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .stage-title small {
+    display: block;
+    color: var(--brass);
+    font-size: 11px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    text-shadow: 0 0 12px rgba(0,0,0,0.6);
+  }
+  .stage-title strong {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: clamp(22px, 2vw, 30px);
+    color: var(--ivory-soft);
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 24px rgba(0,0,0,0.7);
+  }
+
+  .field {
+    position: relative;
+    padding: 120px 56px 80px;
+    min-height: 100vh;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    column-gap: 40px;
+    row-gap: 64px;
+    align-items: start;
+  }
+  @media (min-width: 1800px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); column-gap: 56px; row-gap: 80px; }
+  }
+  @media (min-width: 2400px) {
+    .grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  }
+
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--ivory-soft);
+    font-family: var(--serif);
+    font-size: 24px;
+    font-style: italic;
+    padding: 120px 20px;
+    opacity: 0.7;
+  }
+
+  .lantern {
+    position: relative;
+    isolation: isolate;
+    transform-origin: 50% 0%;
+    animation: drift var(--dur, 7s) ease-in-out var(--delay, 0s) infinite;
+    --shift-x: 0px;
+    --tilt: 0deg;
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(calc(var(--tilt) * -1)); }
+    50%      { transform: translate(var(--shift-x), -10px) rotate(var(--tilt)); }
+  }
+  .lantern::before {
+    content: ""; position: absolute; left: 50%; top: -36px;
+    width: 1px; height: 36px;
+    background: linear-gradient(180deg, transparent, rgba(255,225,170,0.5));
+    transform: translateX(-50%);
+  }
+
+  .body {
+    position: relative;
+    border-radius: 10px;
+    background: radial-gradient(ellipse at 50% 35%, var(--paper-1) 0%, var(--paper-2) 100%);
+    border: 1px solid rgba(255,225,170,0.55);
+    box-shadow:
+      0 0 36px var(--glow),
+      0 0 72px rgba(255,160,80,0.22),
+      inset 0 0 28px rgba(255,230,180,0.5);
+    color: #2a1608;
+    padding: 28px 26px 32px;
+    text-align: left;
+    overflow: hidden;
+  }
+  .body::before {
+    content: ""; position: absolute; left: 50%; top: -1px;
+    transform: translate(-50%, -50%);
+    width: 64%; height: 10px;
+    background: rgba(80,40,15,0.6);
+    border-radius: 5px;
+  }
+  .body::after {
+    content: ""; position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%);
+    width: 22px; height: 14px;
+    background: linear-gradient(180deg, var(--paper-2), transparent);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 6px 10px var(--glow));
+  }
+
+  .name {
+    font-family: var(--serif);
+    font-size: 26px;
+    line-height: 1.15;
+    font-weight: 600;
+    color: #3a1d08;
+    margin: 0 0 4px;
+  }
+  .role {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(58,29,8,0.7);
+    margin-bottom: 16px;
+    min-height: 12px;
+  }
+  .text {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.5;
+    color: #2a1608;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .photo {
+    position: relative;
+    margin: -28px -26px 18px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #1a0e05;
+    border-radius: 10px 10px 0 0;
+  }
+  .photo .slide {
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity 0.9s ease;
+  }
+  .photo .slide.is-active { opacity: 1; }
+  .photo img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .photo .dots {
+    position: absolute; left: 0; right: 0; bottom: 8px;
+    display: flex; justify-content: center; gap: 6px;
+    pointer-events: none;
+  }
+  .photo .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,0.45);
+    transition: background 0.4s ease;
+  }
+  .photo .dot.is-active { background: var(--brass-light); }
+
+  /* Reduce motion: hold the lantern still and skip carousel cross-fades */
+  @media (prefers-reduced-motion: reduce) {
+    .lantern { animation: none; }
+    .photo .slide { transition: none; }
+  }
+</style>
+<script src="scripts/lantern-wall-display.js" defer></script>
+</head>
+<body>
+
+<div class="stage-title">
+  <small>Lantern Wall</small>
+  <strong>In honored memory of Captain Melvin Lum</strong>
+</div>
+
+<main class="field">
+  <div class="grid" id="grid">
+    <div class="empty">Lighting the lanterns…</div>
+  </div>
+</main>
+
+</body>
+</html>
