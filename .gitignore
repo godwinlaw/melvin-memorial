@@ -17,3 +17,6 @@ docs/superpowers/
 .playwright-mcp/
 test-results/
 *-debug.png
+
+# Locally-rendered print artifacts (PDFs + their HTML source)
+print/
