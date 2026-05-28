@@ -414,11 +414,12 @@ async function handleCreateLantern(request, env) {
     return jsonResponse({ error: "Expected multipart/form-data" }, 415);
   }
 
-  const presented = request.headers.get("x-post-password") ?? "";
-  const expected = env.POST_PASSWORD ?? "";
-  if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
-    return jsonResponse({ error: "Unauthorized" }, 401);
-  }
+  // TEMP: lantern post password disabled. Restore the block below to re-enable.
+  // const presented = request.headers.get("x-post-password") ?? "";
+  // const expected = env.POST_PASSWORD ?? "";
+  // if (!presented || !expected || !(await constantTimeEquals(presented, expected))) {
+  //   return jsonResponse({ error: "Unauthorized" }, 401);
+  // }
 
   let form;
   try {
