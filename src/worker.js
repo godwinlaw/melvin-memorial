@@ -9,6 +9,27 @@ const LANTERN_ROLE_MAX = 60;
 const LANTERN_MSG_MAX = 2000;
 const LANTERN_MEDIA_MAX_BYTES = 8 * 1024 * 1024;
 const LANTERN_MEDIA_MAX_COUNT = 4;
+
+const BOOK_NAME_MAX = 200;
+const BOOK_EMAIL_MAX = 320;
+const BOOK_ADDRESS_MAX = 1000;
+
+// Source-of-truth book table. The client sends a `bookId`; the server
+// looks up title/author here and stores both. Keep in sync with the
+// BOOKS constant in preview.html.
+const BOOKS = {
+  walking: {
+    title: "Walking with God through Pain and Suffering",
+    author: "Timothy Keller",
+  },
+  mere:    { title: "Mere Christianity",    author: "C. S. Lewis" },
+  proof:   { title: "Proof of Heaven",      author: "Eben Alexander, M.D." },
+  imagine: { title: "Imagine Heaven",       author: "John Burke" },
+  making:  { title: "Making Sense of God",  author: "Timothy Keller" },
+};
+const BOOK_FORMATS = new Set(["paperback", "audiobook", "kindle"]);
+const BOOK_EMAIL_RE = /.+@.+\..+/;
+
 const LANTERN_MEDIA_MIME_EXT = {
   "image/png": "png",
   "image/jpeg": "jpg",
@@ -56,6 +77,19 @@ export default {
       const lanternMatch = /^\/api\/lanterns\/([a-z0-9-]{4,64})$/.exec(pathname);
       if (lanternMatch && request.method === "DELETE") {
         return await handleDeleteLantern(request, env, lanternMatch[1]);
+      }
+
+      if (pathname === "/api/book-claims" && request.method === "POST") {
+        return await handleCreateBookClaim(request, env);
+      }
+
+      if (pathname === "/api/book-claims" && request.method === "GET") {
+        return await handleListBookClaims(request, env);
+      }
+
+      const bookClaimMatch = /^\/api\/book-claims\/(\d+)$/.exec(pathname);
+      if (bookClaimMatch && request.method === "DELETE") {
+        return await handleDeleteBookClaim(request, env, Number(bookClaimMatch[1]));
       }
 
       if (pathname.startsWith("/media/") && request.method === "GET") {
@@ -630,6 +664,125 @@ async function constantTimeEquals(a, b) {
   let diff = 0;
   for (let i = 0; i < va.length; i++) diff |= va[i] ^ vb[i];
   return diff === 0;
+}
+
+async function handleCreateBookClaim(request, env) {
+  const ct = request.headers.get("content-type") ?? "";
+  if (!ct.toLowerCase().includes("application/json")) {
+    return jsonResponse({ error: "Expected application/json" }, 415);
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid JSON" }, 400);
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return jsonResponse({ error: "Body must be a JSON object" }, 400);
+  }
+
+  const turnstileToken =
+    typeof body.turnstileToken === "string" ? body.turnstileToken.trim() : "";
+  if (!turnstileToken) {
+    return jsonResponse({ error: "Bot check missing." }, 401);
+  }
+  const ip = request.headers.get("cf-connecting-ip") ?? null;
+  const turnstileOk = await verifyTurnstile(turnstileToken, env, ip);
+  if (!turnstileOk) {
+    return jsonResponse({ error: "Bot check failed." }, 401);
+  }
+
+  const bookId = typeof body.bookId === "string" ? body.bookId.trim() : "";
+  const book = BOOKS[bookId];
+  if (!book) return jsonResponse({ error: "Unknown book." }, 400);
+
+  const format = typeof body.format === "string" ? body.format.trim() : "";
+  if (!BOOK_FORMATS.has(format)) {
+    return jsonResponse({ error: "Pick a format." }, 400);
+  }
+
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  if (!name) return jsonResponse({ error: "Please enter your name." }, 400);
+  if (name.length > BOOK_NAME_MAX) {
+    return jsonResponse({ error: `Name is too long (max ${BOOK_NAME_MAX}).` }, 400);
+  }
+
+  let email = null;
+  let address = null;
+  if (format === "paperback") {
+    const a = typeof body.address === "string" ? body.address.trim() : "";
+    if (a.length <= 6) {
+      return jsonResponse({ error: "Please enter a mailing address." }, 400);
+    }
+    if (a.length > BOOK_ADDRESS_MAX) {
+      return jsonResponse({ error: `Address is too long (max ${BOOK_ADDRESS_MAX}).` }, 400);
+    }
+    address = a;
+  } else {
+    const e = typeof body.email === "string" ? body.email.trim() : "";
+    if (!e || !BOOK_EMAIL_RE.test(e)) {
+      return jsonResponse({ error: "Please enter a valid email." }, 400);
+    }
+    if (e.length > BOOK_EMAIL_MAX) {
+      return jsonResponse({ error: `Email is too long (max ${BOOK_EMAIL_MAX}).` }, 400);
+    }
+    email = e;
+  }
+
+  const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 200) || null;
+  const ipCountry = request.headers.get("cf-ipcountry") ?? null;
+
+  try {
+    await env.DB.prepare(
+      "INSERT INTO book_claims (book_id, book_title, book_author, format, name, email, address, user_agent, ip_country) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+      .bind(bookId, book.title, book.author, format, name, email, address, userAgent, ipCountry)
+      .run();
+  } catch (err) {
+    console.error("book_claim_insert_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  return jsonResponse({ ok: true }, 200);
+}
+
+async function handleListBookClaims(request, env) {
+  const unauth = await requireAdmin(request, env);
+  if (unauth) return unauth;
+
+  let rows;
+  try {
+    const result = await env.DB.prepare(
+      "SELECT id, book_id, book_title, book_author, format, name, email, address, created_at " +
+        "FROM book_claims ORDER BY created_at DESC"
+    ).all();
+    rows = result.results ?? [];
+  } catch (err) {
+    console.error("book_claim_list_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  return jsonResponse({ claims: rows });
+}
+
+async function handleDeleteBookClaim(request, env, id) {
+  const unauth = await requireAdmin(request, env);
+  if (unauth) return unauth;
+
+  let result;
+  try {
+    result = await env.DB.prepare("DELETE FROM book_claims WHERE id = ?").bind(id).run();
+  } catch (err) {
+    console.error("book_claim_delete_failed", err?.message ?? String(err));
+    return jsonResponse({ error: "Server error" }, 500);
+  }
+
+  if (!result.meta?.changes) {
+    return jsonResponse({ error: "Not found" }, 404);
+  }
+  return jsonResponse({ ok: true });
 }
 
 function jsonResponse(body, status = 200) {
