@@ -21,6 +21,11 @@
     --glow: rgba(255,180,100,0.4);
     --serif: "Cormorant Garamond", "Newsreader", Georgia, serif;
     --sans: "Inter", system-ui, sans-serif;
+    --title-h: 96px;
+    --gap: 16px;          /* horizontal space between lanterns */
+    /* JS sets these per-render so the lantern fills the viewport top-to-bottom. */
+    --lantern-h: 60vh;
+    --lantern-w: 40vh;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -39,11 +44,11 @@
       radial-gradient(1px 1px at 65% 55%, rgba(255,225,170,0.3), transparent 50%),
       linear-gradient(180deg, #060d18 0%, var(--navy-deep) 60%, #050a13 100%);
     background-attachment: fixed;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   .stage-title {
-    position: fixed; top: 28px; left: 0; right: 0;
+    position: fixed; top: 24px; left: 0; right: 0;
     text-align: center;
     z-index: 5;
     pointer-events: none;
@@ -67,57 +72,74 @@
     text-shadow: 0 0 24px rgba(0,0,0,0.7);
   }
 
-  .field {
-    position: relative;
-    padding: 120px 56px 80px;
-    min-height: 100vh;
+  .marquee {
+    position: fixed;
+    top: var(--title-h);
+    left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    column-gap: 40px;
-    row-gap: 64px;
-    align-items: start;
+  /* Soft fade at left/right edges so lanterns enter and exit gracefully. */
+  .marquee::before,
+  .marquee::after {
+    content: "";
+    position: absolute; top: 0; bottom: 0;
+    width: 80px;
+    z-index: 4;
+    pointer-events: none;
   }
-  @media (min-width: 1800px) {
-    .grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); column-gap: 56px; row-gap: 80px; }
+  .marquee::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--navy-deep), transparent);
   }
-  @media (min-width: 2400px) {
-    .grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  .marquee::after {
+    right: 0;
+    background: linear-gradient(270deg, var(--navy-deep), transparent);
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    padding: 0 var(--gap);
+    height: 100%;
+    will-change: transform;
+    /* JS sets --track-w (one full copy width) and --dur (seconds). */
+    animation: scroll var(--dur, 120s) linear infinite;
+  }
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(var(--track-w, 0px) * -1)); }
   }
 
   .empty {
-    grid-column: 1 / -1;
+    width: 100vw;
     text-align: center;
     color: var(--ivory-soft);
     font-family: var(--serif);
     font-size: 24px;
     font-style: italic;
-    padding: 120px 20px;
     opacity: 0.7;
   }
 
   .lantern {
+    flex: 0 0 auto;
+    width: var(--lantern-w);
+    height: var(--lantern-h);
     position: relative;
     isolation: isolate;
-    transform-origin: 50% 0%;
-    animation: drift var(--dur, 7s) ease-in-out var(--delay, 0s) infinite;
-    --shift-x: 0px;
-    --tilt: 0deg;
-  }
-  @keyframes drift {
-    0%, 100% { transform: translate(0, 0) rotate(calc(var(--tilt) * -1)); }
-    50%      { transform: translate(var(--shift-x), -10px) rotate(var(--tilt)); }
   }
   .lantern::before {
-    content: ""; position: absolute; left: 50%; top: -36px;
-    width: 1px; height: 36px;
+    content: ""; position: absolute; left: 50%; top: -22px;
+    width: 1px; height: 22px;
     background: linear-gradient(180deg, transparent, rgba(255,225,170,0.5));
     transform: translateX(-50%);
   }
 
   .body {
     position: relative;
+    width: 100%; height: 100%;
     border-radius: 10px;
     background: radial-gradient(ellipse at 50% 35%, var(--paper-1) 0%, var(--paper-2) 100%);
     border: 1px solid rgba(255,225,170,0.55);
@@ -126,20 +148,22 @@
       0 0 72px rgba(255,160,80,0.22),
       inset 0 0 28px rgba(255,230,180,0.5);
     color: #2a1608;
-    padding: 28px 26px 32px;
+    padding: 22px 22px 26px;
     text-align: left;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   .body::before {
     content: ""; position: absolute; left: 50%; top: -1px;
     transform: translate(-50%, -50%);
-    width: 64%; height: 10px;
+    width: 64%; height: 9px;
     background: rgba(80,40,15,0.6);
     border-radius: 5px;
   }
   .body::after {
-    content: ""; position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%);
-    width: 22px; height: 14px;
+    content: ""; position: absolute; left: 50%; bottom: -12px; transform: translateX(-50%);
+    width: 20px; height: 13px;
     background: linear-gradient(180deg, var(--paper-2), transparent);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     filter: drop-shadow(0 6px 10px var(--glow));
@@ -147,7 +171,7 @@
 
   .name {
     font-family: var(--serif);
-    font-size: 26px;
+    font-size: 24px;
     line-height: 1.15;
     font-weight: 600;
     color: #3a1d08;
@@ -158,22 +182,25 @@
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: rgba(58,29,8,0.7);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     min-height: 12px;
   }
   .text {
     font-family: var(--serif);
-    font-size: 18px;
-    line-height: 1.5;
+    font-size: var(--text-size, 18px);
+    line-height: 1.45;
     color: #2a1608;
     white-space: pre-wrap;
     word-wrap: break-word;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .photo {
+    flex: 0 0 auto;
     position: relative;
-    margin: -28px -26px 18px;
-    aspect-ratio: 4 / 3;
+    margin: -22px -22px 16px;
+    height: 42%;
     overflow: hidden;
     background: #1a0e05;
     border-radius: 10px 10px 0 0;
@@ -201,9 +228,8 @@
   }
   .photo .dot.is-active { background: var(--brass-light); }
 
-  /* Reduce motion: hold the lantern still and skip carousel cross-fades */
   @media (prefers-reduced-motion: reduce) {
-    .lantern { animation: none; }
+    .track { animation: none; }
     .photo .slide { transition: none; }
   }
 </style>
@@ -213,14 +239,14 @@
 
 <div class="stage-title">
   <small>Lantern Wall</small>
-  <strong>In honored memory of Captain Melvin Lum</strong>
+  <strong>In honored memory of Melvin Lum</strong>
 </div>
 
-<main class="field">
-  <div class="grid" id="grid">
+<div class="marquee" id="marquee">
+  <div class="track" id="track">
     <div class="empty">Lighting the lanterns…</div>
   </div>
-</main>
+</div>
 
 </body>
 </html>
