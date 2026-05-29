@@ -22,7 +22,8 @@
     --serif: "Cormorant Garamond", "Newsreader", Georgia, serif;
     --sans: "Inter", system-ui, sans-serif;
     --title-h: 96px;
-    --gap: 16px;
+    --gap: 16px;          /* horizontal space between lanterns */
+    /* JS sets these per-render so the lantern fills the viewport top-to-bottom. */
     --lantern-h: 60vh;
     --lantern-w: 40vh;
   }
@@ -71,41 +72,28 @@
     text-shadow: 0 0 24px rgba(0,0,0,0.7);
   }
 
-  .stage {
+  .marquee {
     position: fixed;
     top: var(--title-h);
     left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
   }
-
-  .marquee {
-    width: 100%;
-    height: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    /* hide scrollbar but keep scrollability */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    /* horizontal-only momentum on touch */
-    overscroll-behavior: contain;
-    cursor: grab;
-  }
-  .marquee.is-grabbing { cursor: grabbing; }
-  .marquee::-webkit-scrollbar { display: none; }
-
-  /* Edge fades sit ABOVE the scroll container so they don't move with content. */
-  .stage::before,
-  .stage::after {
+  /* Soft fade at left/right edges so lanterns enter and exit gracefully. */
+  .marquee::before,
+  .marquee::after {
     content: "";
     position: absolute; top: 0; bottom: 0;
     width: 80px;
     z-index: 4;
     pointer-events: none;
   }
-  .stage::before {
+  .marquee::before {
     left: 0;
     background: linear-gradient(90deg, var(--navy-deep), transparent);
   }
-  .stage::after {
+  .marquee::after {
     right: 0;
     background: linear-gradient(270deg, var(--navy-deep), transparent);
   }
@@ -116,8 +104,13 @@
     gap: var(--gap);
     padding: 0 var(--gap);
     height: 100%;
-    width: max-content;
     will-change: transform;
+    /* JS sets --track-w (one full copy width) and --dur (seconds). */
+    animation: scroll var(--dur, 120s) linear infinite;
+  }
+  @keyframes scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(var(--track-w, 0px) * -1)); }
   }
 
   .empty {
@@ -136,7 +129,6 @@
     height: var(--lantern-h);
     position: relative;
     isolation: isolate;
-    user-select: none;
   }
   .lantern::before {
     content: ""; position: absolute; left: 50%; top: -22px;
@@ -223,7 +215,6 @@
     width: 100%; height: 100%;
     object-fit: cover; object-position: center;
     display: block;
-    pointer-events: none;
   }
   .photo .dots {
     position: absolute; left: 0; right: 0; bottom: 8px;
@@ -237,69 +228,9 @@
   }
   .photo .dot.is-active { background: var(--brass-light); }
 
-  /* ─── floating controls ─── */
-  .controls {
-    position: fixed;
-    bottom: 24px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 8;
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 10px;
-    background: rgba(10,20,34,0.78);
-    border: 1px solid rgba(200,153,104,0.35);
-    border-radius: 999px;
-    backdrop-filter: blur(8px);
-    color: var(--ivory-soft);
-    font-family: var(--sans);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    transition: opacity 0.4s ease;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
-  }
-  .controls.is-hidden { opacity: 0; pointer-events: none; }
-  .controls button {
-    background: transparent;
-    border: 1px solid rgba(200,153,104,0.35);
-    color: var(--ivory-soft);
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: grid; place-items: center;
-    font: inherit;
-    font-size: 14px;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  }
-  .controls button:hover { color: var(--brass-light); border-color: var(--brass); background: rgba(200,153,104,0.1); }
-  .controls button:focus-visible { outline: 2px solid var(--brass-light); outline-offset: 2px; }
-  .controls button[disabled] { opacity: 0.35; cursor: default; }
-  .controls .play svg { width: 14px; height: 14px; fill: currentColor; }
-  .controls .speed-label {
-    min-width: 64px;
-    text-align: center;
-    color: var(--brass-light);
-    padding: 0 8px;
-    font-variant-numeric: tabular-nums;
-    user-select: none;
-  }
-  .controls .divider {
-    width: 1px; height: 22px;
-    background: rgba(200,153,104,0.25);
-    margin: 0 4px;
-  }
-  .controls .hint {
-    color: var(--ivory-soft);
-    opacity: 0.55;
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    padding: 0 10px 0 4px;
-  }
-
   @media (prefers-reduced-motion: reduce) {
+    .track { animation: none; }
     .photo .slide { transition: none; }
-  }
-  @media (max-width: 640px) {
-    .controls .hint { display: none; }
   }
 </style>
 <script src="scripts/lantern-wall-display.js" defer></script>
@@ -311,26 +242,10 @@
   <strong>In honored memory of Melvin Lum</strong>
 </div>
 
-<div class="stage">
-  <div class="marquee" id="marquee">
-    <div class="track" id="track">
-      <div class="empty">Lighting the lanterns…</div>
-    </div>
+<div class="marquee" id="marquee">
+  <div class="track" id="track">
+    <div class="empty">Lighting the lanterns…</div>
   </div>
-</div>
-
-<div class="controls" id="controls" role="toolbar" aria-label="Lantern wall playback">
-  <button type="button" class="speed-down" id="speedDown" aria-label="Slower">−</button>
-  <span class="speed-label" id="speedLabel" aria-live="polite">20 px/s</span>
-  <button type="button" class="speed-up" id="speedUp" aria-label="Faster">+</button>
-  <span class="divider" aria-hidden="true"></span>
-  <button type="button" class="play" id="playBtn" aria-label="Pause">
-    <svg id="playIcon" viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="6" y="5" width="4" height="14" rx="1"/>
-      <rect x="14" y="5" width="4" height="14" rx="1"/>
-    </svg>
-  </button>
-  <span class="hint">Drag · Scroll · Swipe</span>
 </div>
 
 </body>
