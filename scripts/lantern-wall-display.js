@@ -10,7 +10,7 @@
   const POLL_MS = 60_000;
   const SLIDE_MIN_MS = 4000;
   const SLIDE_MAX_MS = 9000;
-  const SCROLL_PX_PER_SEC = 60;   // marquee speed
+  const SCROLL_PX_PER_SEC = 20;   // marquee speed
   const ASPECT = 0.62;            // lantern width / height — portrait card
 
   const track = document.getElementById("track");
