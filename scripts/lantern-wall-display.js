@@ -1,9 +1,11 @@
 // Standalone display script for lantern-wall.html.
 // Fetches /api/lanterns, lays them out in a single horizontal row sized to fill
 // the viewport top-to-bottom, then loops the row left at a slow constant speed
-// so the whole wall can be read by waiting. Per-lantern photo carousels
-// auto-advance at independent random intervals so they never sync. Polls every
-// 60s and merges new entries.
+// so the whole wall can be read by waiting. Lanterns are ordered so long
+// messages and short messages alternate (longest weaves with shortest), giving
+// the marquee a balanced visual rhythm. Per-lantern photo carousels auto-
+// advance at independent random intervals so they never sync. Polls every
+// 60s and re-balances the order whenever the set changes.
 
 (function () {
   const ENDPOINT = "/api/lanterns";
@@ -43,7 +45,7 @@
     const next = list.map(normalize);
     if (!isInitial && sameSet(entries, next)) return; // nothing changed
 
-    entries = isInitial ? shuffle(next) : mergeOrder(entries, next);
+    entries = balanceByLength(next);
     rebuild();
   }
 
@@ -54,18 +56,34 @@
     return true;
   }
 
-  // Keep existing order stable; append new ids at the end; drop missing ids.
-  function mergeOrder(prev, next) {
-    const byId = new Map(next.map((e) => [e.id, e]));
+  // Order lanterns so long messages and short messages alternate, giving the
+  // marquee a balanced visual rhythm instead of clusters of dense text.
+  // Strategy: sort by word count descending (id tiebreak for stability across
+  // reloads), then weave longest / shortest from the ends inward — produces
+  // [L1, S1, L2, S2, L3, S3, ...] with the median lantern at the end.
+  function balanceByLength(list) {
+    const sorted = [...list].sort((a, b) => {
+      const wa = wordCount(a.msg);
+      const wb = wordCount(b.msg);
+      if (wa !== wb) return wb - wa;
+      return String(a.id).localeCompare(String(b.id));
+    });
     const out = [];
-    const seen = new Set();
-    for (const e of prev) {
-      if (byId.has(e.id)) { out.push(byId.get(e.id)); seen.add(e.id); }
-    }
-    for (const e of next) {
-      if (!seen.has(e.id)) out.push(e);
+    let lo = 0;
+    let hi = sorted.length - 1;
+    let takeLong = true;
+    while (lo <= hi) {
+      if (takeLong) out.push(sorted[lo++]);
+      else          out.push(sorted[hi--]);
+      takeLong = !takeLong;
     }
     return out;
+  }
+
+  function wordCount(s) {
+    const t = (s || "").trim();
+    if (!t) return 0;
+    return t.split(/\s+/).length;
   }
 
   function rebuild() {
@@ -243,12 +261,4 @@
     };
   }
 
-  function shuffle(arr) {
-    const out = [...arr];
-    for (let i = out.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [out[i], out[j]] = [out[j], out[i]];
-    }
-    return out;
-  }
 })();
