@@ -21,7 +21,7 @@
     --glow: rgba(255,180,100,0.4);
     --serif: "Cormorant Garamond", "Newsreader", Georgia, serif;
     --sans: "Inter", system-ui, sans-serif;
-    --title-h: 96px;
+    --title-h: 116px;
     --gap: 16px;          /* horizontal space between lanterns */
     /* JS sets these per-render so the lantern fills the viewport top-to-bottom. */
     --lantern-h: 60vh;
@@ -70,6 +70,20 @@
     color: var(--ivory-soft);
     letter-spacing: 0.04em;
     text-shadow: 0 0 24px rgba(0,0,0,0.7);
+  }
+  .stage-title .tagline {
+    margin-top: 6px;
+    color: var(--ivory-soft);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    text-shadow: 0 0 12px rgba(0,0,0,0.65);
+  }
+  .stage-title .tagline b {
+    color: var(--brass-light);
+    font-weight: 500;
+    letter-spacing: 0.14em;
   }
 
   .marquee {
@@ -240,6 +254,7 @@
 <div class="stage-title">
   <small>Lantern Wall</small>
   <strong>In honored memory of Melvin Lum</strong>
+  <div class="tagline">Light a lantern at <b>melvinlum.com/#lanterns</b></div>
 </div>
 
 <div class="marquee" id="marquee">
