@@ -300,6 +300,7 @@
       <a href="story.html">His Story</a>
       <a href="#service">Service</a>
       <a href="#livestream">Livestream</a>
+      <a href="#tribute">Tribute</a>
       <a href="#gift">Gift</a>
       <a href="#lanterns">Lanterns</a>
       <a href="#" data-rsvp-open>RSVP</a>
@@ -393,9 +394,31 @@
   </div>
 </section>
 
-<section class="block books" id="gift">
+<section class="block tribute" id="tribute">
   <div class="section-head">
     <div class="section-num">04</div>
+    <div class="section-meta"><small>Through the Years</small><h2>A life <em>in pictures</em></h2></div>
+  </div>
+  <div class="vt-wrap">
+    <div class="vt-frame">
+      <button type="button" class="vt-screen" id="vt-screen" data-video-id="dKlYnooDGbE" aria-label="Play tribute video — Melvin Lum, a life in pictures">
+        <img class="vt-poster" src="assets/tribute-poster.jpg" alt="Melvin Lum in his fire-captain gear, holding his child" onerror="this.style.display='none'">
+        <span class="vt-scrim" aria-hidden="true"></span>
+        <span class="vt-play" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="32" cy="32" r="30"/>
+            <path d="M26 22l18 10-18 10z" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span class="vt-caption">In Loving Memory &middot; 11 min</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="block books" id="gift">
+  <div class="section-head">
+    <div class="section-num">05</div>
     <div class="section-meta"><small>A Gift from the Family</small><h2>Books that help us <em>look toward home</em></h2></div>
   </div>
 
@@ -461,7 +484,7 @@
 
 <section class="block lanterns" id="lanterns">
   <div class="section-head">
-    <div class="section-num">05</div>
+    <div class="section-num">06</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
   <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
