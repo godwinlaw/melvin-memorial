@@ -140,6 +140,28 @@
     .ls-band-row.notes { flex-direction: column; align-items: flex-start; gap: 8px; }
   }
 
+  .tribute { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); border-top: 1px solid var(--navy-line); }
+  .vt-wrap { max-width: 1180px; margin: 0 auto; }
+  .vt-frame { position: relative; border: 1px solid var(--brass); padding: 14px; background: rgba(10,20,34,0.55); box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+  .vt-frame::before, .vt-frame::after { content: ""; position: absolute; width: 18px; height: 18px; border: 1px solid var(--brass); }
+  .vt-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .vt-frame::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .vt-screen { display: block; width: 100%; padding: 0; border: 0; aspect-ratio: 16 / 9; position: relative; overflow: hidden; background: #08111d; color: var(--brass-light); cursor: pointer; }
+  .vt-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .vt-scrim { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, rgba(10,20,34,0.2), rgba(10,20,34,0.66)); transition: background 0.25s ease; }
+  .vt-screen:hover .vt-scrim, .vt-screen:focus-visible .vt-scrim { background: radial-gradient(ellipse at 50% 45%, rgba(10,20,34,0.1), rgba(10,20,34,0.55)); }
+  .vt-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 84px; height: 84px; color: var(--brass-light); transition: transform 0.25s ease, color 0.25s ease; }
+  .vt-play svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 4px 18px rgba(0,0,0,0.5)); }
+  .vt-screen:hover .vt-play, .vt-screen:focus-visible .vt-play { transform: translate(-50%, -50%) scale(1.06); color: var(--ivory); }
+  .vt-screen:focus-visible { outline: 2px solid var(--brass-light); outline-offset: 3px; }
+  .vt-caption { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center; color: var(--brass-light); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; z-index: 1; }
+  .vt-screen.is-live { cursor: default; background: #000; }
+  .vt-screen.is-live iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  @media (max-width: 760px) {
+    .vt-play { width: 64px; height: 64px; }
+    .vt-caption { bottom: 10px; font-size: 10px; }
+  }
+
   .books { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); border-top: 1px solid var(--navy-line); }
   .books-intro { max-width: 720px; margin: -28px auto 18px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.55; color: var(--ivory-soft); }
   .books-intro + .books-intro { margin-top: 0; margin-bottom: 56px; font-size: 21px; }
@@ -278,6 +300,7 @@
       <a href="story.html">His Story</a>
       <a href="#service">Service</a>
       <a href="#livestream">Livestream</a>
+      <a href="#tribute">Tribute</a>
       <a href="#gift">Gift</a>
       <a href="#lanterns">Lanterns</a>
       <a href="#" data-rsvp-open>RSVP</a>
@@ -371,9 +394,31 @@
   </div>
 </section>
 
-<section class="block books" id="gift">
+<section class="block tribute" id="tribute">
   <div class="section-head">
     <div class="section-num">04</div>
+    <div class="section-meta"><small>Through the Years</small><h2>A life <em>in pictures</em></h2></div>
+  </div>
+  <div class="vt-wrap">
+    <div class="vt-frame">
+      <button type="button" class="vt-screen" id="vt-screen" data-video-id="dKlYnooDGbE" aria-label="Play tribute video — Melvin Lum, a life in pictures">
+        <img class="vt-poster" src="assets/tribute-poster.jpg" alt="Melvin Lum in his fire-captain gear, holding his child" onerror="this.style.display='none'">
+        <span class="vt-scrim" aria-hidden="true"></span>
+        <span class="vt-play" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="32" cy="32" r="30"/>
+            <path d="M26 22l18 10-18 10z" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span class="vt-caption">In Loving Memory &middot; 11 min</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="block books" id="gift">
+  <div class="section-head">
+    <div class="section-num">05</div>
     <div class="section-meta"><small>A Gift from the Family</small><h2>Books that help us <em>look toward home</em></h2></div>
   </div>
 
@@ -439,7 +484,7 @@
 
 <section class="block lanterns" id="lanterns">
   <div class="section-head">
-    <div class="section-num">05</div>
+    <div class="section-num">06</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
   <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
@@ -854,6 +899,26 @@
     selectBook(null);
     submitBtn.disabled = true;
     resetTurnstile();
+  });
+})();
+</script>
+
+<script>
+(function () {
+  var screen = document.getElementById("vt-screen");
+  if (!screen) return;
+  screen.addEventListener("click", function () {
+    var id = screen.getAttribute("data-video-id");
+    if (!id) return;
+    var live = document.createElement("div");
+    live.className = "vt-screen is-live";
+    var iframe = document.createElement("iframe");
+    iframe.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    iframe.title = "Melvin Lum — A Life in Pictures";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+    iframe.setAttribute("allowfullscreen", "");
+    live.appendChild(iframe);
+    screen.replaceWith(live);
   });
 })();
 </script>
