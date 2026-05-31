@@ -903,5 +903,25 @@
 })();
 </script>
 
+<script>
+(function () {
+  var screen = document.getElementById("vt-screen");
+  if (!screen) return;
+  screen.addEventListener("click", function () {
+    var id = screen.getAttribute("data-video-id");
+    if (!id) return;
+    var live = document.createElement("div");
+    live.className = "vt-screen is-live";
+    var iframe = document.createElement("iframe");
+    iframe.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+    iframe.title = "Melvin Lum — A Life in Pictures";
+    iframe.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+    iframe.setAttribute("allowfullscreen", "");
+    live.appendChild(iframe);
+    screen.replaceWith(live);
+  });
+})();
+</script>
+
 </body>
 </html>
