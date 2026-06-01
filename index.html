@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="styles/shared.css">
 <script src="scripts/lantern-wall.js"></script>
 <script src="scripts/rsvp-config.js"></script>
-<script src="scripts/rsvp-form.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
   :root {
@@ -57,17 +56,8 @@
   .section-meta h2 { font-family: "Cormorant Garamond", serif; color: var(--ivory); }
   .section-meta h2 em { color: var(--brass-light); }
 
-  .service { background: var(--navy-deep); border-top: 1px solid var(--navy-line); }
-  .service-card { max-width: 880px; margin: 0 auto; border: 1px solid var(--brass); padding: 56px; background: rgba(10,20,34,0.55); text-align: center; }
-  .service-card .stamp { display: inline-block; color: var(--brass); font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; border: 1px solid var(--brass); padding: 6px 14px; margin-bottom: 22px; }
-  .service-card h3 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(28px, 3vw, 38px); margin: 0 0 18px; }
-  .service-card p { color: var(--ivory-soft); line-height: 1.7; max-width: 560px; margin: 0 auto 28px; }
-  .service-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 240px)); gap: 48px; margin: 36px auto; justify-content: center; text-align: center; }
-  @media (max-width: 760px) { .service-grid { grid-template-columns: 1fr; gap: 20px; } .service-card { padding: 36px 24px; } }
-  .service-grid small { display: block; color: var(--brass); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 8px; }
-  .service-grid b { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: 20px; display: block; line-height: 1.3; }
-  .service-grid b a { color: inherit; text-decoration: none; border-bottom: 1px solid rgba(200,153,104,0.3); transition: border-color 0.2s ease; }
-  .service-grid b a:hover { border-bottom-color: var(--brass); }
+  .recording { background: var(--navy-deep); border-top: 1px solid var(--navy-line); }
+  .recording-intro { max-width: 720px; margin: -12px auto 40px; text-align: center; font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 21px; line-height: 1.6; color: var(--ivory-soft); }
   .placeholder-text { color: var(--muted); border-color: var(--navy-line); }
   .notify-form { color: var(--ivory); border-color: var(--brass); }
   .notify-form input::placeholder { color: var(--muted); }
@@ -107,38 +97,6 @@
   .gal-cta { max-width: 1280px; margin: 40px auto 0; text-align: center; }
   .gal-cta a { display: inline-block; padding: 14px 28px; border: 1px solid var(--brass); color: var(--brass-light); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; transition: background 0.2s ease, color 0.2s ease; }
   .gal-cta a:hover { background: var(--brass); color: var(--navy-deep); }
-
-  .livestream { background: var(--navy-deep); border-top: 1px solid var(--navy-line); }
-  .ls-wrap { max-width: 1180px; margin: 0 auto; }
-  .ls-frame { position: relative; border: 1px solid var(--brass); padding: 14px; background: rgba(10,20,34,0.55); box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
-  .ls-frame::before, .ls-frame::after { content: ""; position: absolute; width: 18px; height: 18px; border: 1px solid var(--brass); }
-  .ls-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
-  .ls-frame::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
-  .ls-screen { aspect-ratio: 16 / 9; background: linear-gradient(180deg, #0d1a2c 0%, #08111d 100%); display: grid; place-items: center; padding: 40px; text-align: center; position: relative; overflow: hidden; }
-  .ls-screen.is-live { background: #000; padding: 0; }
-  .ls-screen::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, rgba(200,153,104,0.04) 0 14px, transparent 14px 28px), radial-gradient(ellipse at 50% 30%, rgba(200,153,104,0.18), transparent 60%); pointer-events: none; }
-  .ls-screen.is-live::before { display: none; }
-  .ls-screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-  .ls-status { position: absolute; top: 22px; left: 24px; display: inline-flex; align-items: center; gap: 10px; color: var(--brass-light); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; border: 1px solid var(--brass); padding: 7px 12px; background: rgba(10,20,34,0.7); z-index: 1; }
-  .ls-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brass); box-shadow: 0 0 0 4px rgba(200,153,104,0.18); animation: ls-pulse 2.4s ease-in-out infinite; }
-  @keyframes ls-pulse { 0%, 100% { opacity: 0.5; box-shadow: 0 0 0 0 rgba(200,153,104,0.4); } 50% { opacity: 1; box-shadow: 0 0 0 6px rgba(200,153,104,0); } }
-  .ls-glyph { width: 92px; color: var(--brass-light); opacity: 0.75; margin-bottom: 22px; position: relative; z-index: 1; }
-  .ls-glyph svg { width: 100%; height: auto; display: block; }
-  .ls-title { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(22px, 2.6vw, 32px); color: var(--ivory); max-width: 560px; line-height: 1.3; position: relative; z-index: 1; }
-  .ls-sub { margin-top: 12px; color: var(--brass-light); font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; position: relative; z-index: 1; }
-  .ls-cta { margin-top: 28px; display: inline-block; color: var(--brass-light); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; border-bottom: 1px solid var(--brass); padding-bottom: 4px; position: relative; z-index: 1; }
-  .ls-cta:hover { color: var(--ivory); }
-  .ls-band { border-top: 1px solid var(--navy-line); margin-top: 14px; padding: 22px 8px 6px; }
-  .ls-band-row { display: flex; gap: 18px; align-items: center; padding: 10px 0; }
-  .ls-band-row.notes { border-top: 1px solid var(--navy-line); margin-top: 8px; padding-top: 18px; gap: 32px; color: var(--ivory-soft); font-size: 13px; }
-  .ls-band-row.notes b { color: var(--brass-light); font-weight: 500; }
-  .ls-tag { color: var(--navy-deep); background: var(--brass); padding: 5px 10px; font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; font-weight: 600; }
-  .ls-label { color: var(--ivory-soft); font-size: 13px; line-height: 1.55; }
-  @media (max-width: 760px) {
-    .ls-screen { padding: 28px; }
-    .ls-status { top: 14px; left: 14px; padding: 5px 9px; font-size: 9px; }
-    .ls-band-row.notes { flex-direction: column; align-items: flex-start; gap: 8px; }
-  }
 
   .tribute { background: linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%); border-top: 1px solid var(--navy-line); }
   .vt-wrap { max-width: 1180px; margin: 0 auto; }
@@ -248,44 +206,6 @@
   .foot-links a { color: var(--brass); }
   .foot-copy { color: var(--muted); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 16px; }
   .back-to-picker { background: rgba(10,20,34,0.85); border-color: var(--navy-line); color: var(--ivory-soft); }
-  .rsvp-cta { margin-top: 36px; }
-  .rsvp-btn {
-    display: inline-block;
-    padding: 14px 32px;
-    border: 1px solid var(--brass);
-    background: transparent;
-    color: var(--brass-light);
-    font: inherit;
-    font-size: 11px;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-  }
-  .rsvp-btn:hover { background: var(--brass); color: var(--navy-deep); }
-
-  .rsvp-dialog {
-    border: 1px solid var(--brass);
-    background: var(--navy);
-    color: var(--ivory);
-    padding: 0;
-    width: min(520px, 92vw);
-    max-height: 90vh;
-    overflow: auto;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
-  }
-  .rsvp-dialog::backdrop { background: rgba(10,20,34,0.78); backdrop-filter: blur(4px); }
-  .rsvp-close {
-    position: absolute; top: 10px; right: 12px;
-    width: 32px; height: 32px;
-    background: transparent; border: 1px solid transparent;
-    color: var(--ivory-soft); cursor: pointer;
-    font-size: 22px; line-height: 1;
-  }
-  .rsvp-close:hover { color: var(--brass-light); border-color: var(--brass); }
-  .rsvp-dialog-inner { position: relative; }
-  .rsvp-turnstile { display: flex; justify-content: center; padding: 0 28px 16px; min-height: 65px; }
-  .rsvp-turnstile-fallback { color: #d99c8a; font-size: 12px; padding: 8px 28px 16px; text-align: center; }
 </style>
 </head>
 <body>
@@ -299,11 +219,9 @@
     <nav class="links">
       <a href="story.html">His Story</a>
       <a href="#service">Service</a>
-      <a href="#livestream">Livestream</a>
       <a href="#tribute">Tribute</a>
       <a href="#gift">Gift</a>
       <a href="#lanterns">Lanterns</a>
-      <a href="#" data-rsvp-open>RSVP</a>
     </nav>
   </div>
 </header>
@@ -337,66 +255,32 @@
   </div>
 </section>
 
-<section class="block service" id="service">
+<section class="block recording" id="service">
   <div class="section-head">
     <div class="section-num">02</div>
-    <div class="section-meta"><small>Memorial Service</small><h2>A gathering to <em>honor him</em></h2></div>
+    <div class="section-meta"><small>The Memorial Service</small><h2>Watch the <em>recording</em></h2></div>
   </div>
-  <div class="service-card">
-    <div class="stamp">All Are Welcome</div>
-    <h3>Please join us in remembering Melvin.</h3>
-    <p>A memorial service will be held in his honor.<br>Lunch will be provided afterwards.<br>Dress code is casual.</p>
-    <div class="service-grid">
-      <div><small>Date & Time</small><b>Saturday, May 30, 2026<br>12:00 PM</b></div>
-      <div><small>Place</small><b>Acts2 Network<br><a href="https://maps.app.goo.gl/sLjPSrk96DKAPnLt5" target="_blank" rel="noopener">1275 Harbor Bay Parkway</a><br>Alameda, CA 94502</b></div>
-    </div>
-    <div class="rsvp-cta">
-      <button type="button" class="rsvp-btn" data-rsvp-open>RSVP</button>
-    </div>
-  </div>
-</section>
-
-<dialog class="rsvp-dialog" id="rsvp-dialog" aria-label="RSVP">
-  <div class="rsvp-dialog-inner">
-    <button type="button" class="rsvp-close" data-rsvp-close aria-label="Close">×</button>
-    <rsvp-form id="memorial-rsvp" endpoint="/api/rsvp"
-      style="--rsvp-ink: var(--ivory); --rsvp-ink-soft: var(--ivory-soft); --rsvp-accent: var(--brass); --rsvp-line: rgba(200,153,104,0.3); --rsvp-bg: transparent; --rsvp-serif: 'Cormorant Garamond', serif;"></rsvp-form>
-    <div class="rsvp-turnstile" id="rsvp-turnstile-mount"></div>
-  </div>
-</dialog>
-
-<section class="block livestream" id="livestream">
-  <div class="section-head">
-    <div class="section-num">03</div>
-    <div class="section-meta"><small>Watch from Anywhere</small><h2>Can't join us in person? <em>Join via livestream.</em></h2></div>
-  </div>
-  <div class="ls-wrap">
-    <div class="ls-frame">
-      <div class="ls-screen" id="ls-screen" data-stream-url="https://control.resi.io/webplayer/video.html?id=95fbc368-8320-4321-882d-ff0664ebf596" data-go-live="2026-05-30T18:00:00Z">
-        <div class="ls-status"><span class="ls-dot"></span> Awaiting Stream</div>
-        <div class="ls-glyph" aria-hidden="true">
+  <p class="recording-intro">We gathered on Saturday, May 30, 2026 to remember Melvin. If you couldn't be with us &mdash; or would like to relive the day &mdash; the full service is here to watch whenever you wish.</p>
+  <div class="vt-wrap">
+    <div class="vt-frame">
+      <button type="button" class="vt-screen" id="rec-screen" data-video-id="CdRRbVkneZ4" aria-label="Play the memorial service recording for Melvin Lum">
+        <img class="vt-poster" src="https://i.ytimg.com/vi/CdRRbVkneZ4/hqdefault.jpg" alt="" onerror="this.style.display='none'">
+        <span class="vt-scrim" aria-hidden="true"></span>
+        <span class="vt-play" aria-hidden="true">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="14" width="52" height="36" rx="2"/>
-            <path d="M26 26l14 8-14 8z" fill="currentColor" stroke="none"/>
+            <circle cx="32" cy="32" r="30"/>
+            <path d="M26 22l18 10-18 10z" fill="currentColor" stroke="none"/>
           </svg>
-        </div>
-        <div class="ls-title">The livestream will be available on Saturday, May 30, 2026 &middot; 12:00 PM PT</div>
-        <div class="ls-sub">Melvin Lum &middot; Memorial Service</div>
-        <!-- <a class="ls-cta" href="https://youtube.com/live/WDhbEVWMKZA?feature=share" target="_blank" rel="noopener">Watch on YouTube &rarr;</a> -->
-      </div>
-      <div class="ls-band">
-        <div class="ls-band-row">
-          <span class="ls-tag">Live</span>
-          <span class="ls-label">A link to the stream will be placed here when the service begins. Refresh the page on the day of the service if it does not appear.</span>
-        </div>
-      </div>
+        </span>
+        <span class="vt-caption">Memorial Service &middot; In Loving Memory</span>
+      </button>
     </div>
   </div>
 </section>
 
 <section class="block tribute" id="tribute">
   <div class="section-head">
-    <div class="section-num">04</div>
+    <div class="section-num">03</div>
     <div class="section-meta"><small>Through the Years</small><h2>A life <em>in pictures</em></h2></div>
   </div>
   <div class="vt-wrap">
@@ -418,7 +302,7 @@
 
 <section class="block books" id="gift">
   <div class="section-head">
-    <div class="section-num">05</div>
+    <div class="section-num">04</div>
     <div class="section-meta"><small>A Gift from the Family</small><h2>Books that help us <em>look toward home</em></h2></div>
   </div>
 
@@ -484,7 +368,7 @@
 
 <section class="block lanterns" id="lanterns">
   <div class="section-head">
-    <div class="section-num">06</div>
+    <div class="section-num">05</div>
     <div class="section-meta"><small>Lantern Wall</small><h2>Light a lantern <em>in his memory</em></h2></div>
   </div>
   <lantern-wall id="hg" endpoint="/api/lanterns" style="--lw-bg: rgba(10,20,34,0.6); --lw-glow: rgba(200,153,104,0.35); --lw-ink: #f3ead7; --lw-ink-soft: #d8cdb4; --lw-line: rgba(200,153,104,0.3); --lw-accent: #c89968; --lw-serif: 'Cormorant Garamond', serif;"></lantern-wall>
@@ -495,121 +379,13 @@
   <div class="foot-rule"></div>
   <div class="foot-links">
     <a href="#service">Service</a>
+    <a href="#tribute">Tribute</a>
     <a href="#gift">Gift</a>
     <a href="#lanterns">Lanterns</a>
-    <a href="#" data-rsvp-open>RSVP</a>
   </div>
   <div class="foot-rule"></div>
   <div class="foot-copy">In Honored Memory · Melvin's Family · MMXXVI</div>
 </footer>
-
-<script>
-  (function () {
-    const dialog = document.getElementById("rsvp-dialog");
-    const form = document.getElementById("memorial-rsvp");
-    const turnstileMount = document.getElementById("rsvp-turnstile-mount");
-    if (!dialog || !form || !turnstileMount) return;
-
-    const sitekey = (window.RSVP_TURNSTILE_SITE_KEY || "").trim();
-    let widgetId = null;
-
-    function renderTurnstile() {
-      if (!sitekey) {
-        turnstileMount.textContent = "Bot check unavailable (site key not configured).";
-        turnstileMount.className = "rsvp-turnstile-fallback";
-        return;
-      }
-      if (widgetId !== null) {
-        try { window.turnstile.reset(widgetId); } catch {}
-        return;
-      }
-      const tryRender = () => {
-        if (!window.turnstile || typeof window.turnstile.render !== "function") return false;
-        try {
-          widgetId = window.turnstile.render(turnstileMount, {
-            sitekey,
-            theme: "dark",
-            callback: (token) => form.setTurnstileToken(token),
-            "error-callback": () => form.clearTurnstileToken(),
-            "expired-callback": () => form.clearTurnstileToken(),
-          });
-          return true;
-        } catch (err) {
-          console.error("turnstile render failed", err);
-          return false;
-        }
-      };
-      if (tryRender()) return;
-      const start = Date.now();
-      const tick = () => {
-        if (tryRender()) return;
-        if (Date.now() - start < 5000) setTimeout(tick, 100);
-      };
-      setTimeout(tick, 100);
-    }
-
-    function showTurnstile() { turnstileMount.style.display = ""; }
-    function hideTurnstile() { turnstileMount.style.display = "none"; }
-
-    document.querySelectorAll("[data-rsvp-open]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (typeof dialog.showModal === "function") dialog.showModal();
-        else dialog.setAttribute("open", "");
-        showTurnstile();
-        renderTurnstile();
-      });
-    });
-
-    dialog.querySelectorAll("[data-rsvp-close]").forEach((btn) => {
-      btn.addEventListener("click", () => dialog.close());
-    });
-
-    dialog.addEventListener("close", () => {
-      if (form.isDone) form.reset();
-      form.clearTurnstileToken();
-      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
-        try { window.turnstile.reset(widgetId); } catch {}
-      }
-    });
-
-    form.addEventListener("rsvp-submitted", () => {
-      // form is in the thank-you state; the widget is no longer relevant
-      hideTurnstile();
-      form.clearTurnstileToken();
-      if (widgetId !== null && window.turnstile && typeof window.turnstile.reset === "function") {
-        try { window.turnstile.reset(widgetId); } catch {}
-      }
-    });
-
-    // user clicked "Submit another RSVP" — bring the bot check back
-    form.addEventListener("rsvp-reset", () => {
-      showTurnstile();
-      renderTurnstile();
-    });
-  })();
-
-  (function () {
-    const screen = document.getElementById("ls-screen");
-    if (!screen) return;
-    const goLive = new Date(screen.dataset.goLive).getTime();
-    const url = screen.dataset.streamUrl;
-    if (!goLive || !url) return;
-
-    function swap() {
-      if (Date.now() < goLive) return false;
-      screen.classList.add("is-live");
-      screen.innerHTML = '<iframe src="' + url + '" title="Melvin Lum Memorial Service livestream" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
-      return true;
-    }
-
-    if (!swap()) {
-      const ms = goLive - Date.now();
-      if (ms < 2147483647) setTimeout(swap, ms + 1000);
-    }
-  })();
-
-</script>
 
 <script>
 (function () {
@@ -905,20 +681,21 @@
 
 <script>
 (function () {
-  var screen = document.getElementById("vt-screen");
-  if (!screen) return;
-  screen.addEventListener("click", function () {
-    var id = screen.getAttribute("data-video-id");
-    if (!id) return;
-    var live = document.createElement("div");
-    live.className = "vt-screen is-live";
-    var iframe = document.createElement("iframe");
-    iframe.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
-    iframe.title = "Melvin Lum — A Life in Pictures";
-    iframe.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
-    iframe.setAttribute("allowfullscreen", "");
-    live.appendChild(iframe);
-    screen.replaceWith(live);
+  // Click-to-play for every YouTube player on the page (service recording + tribute).
+  document.querySelectorAll(".vt-screen[data-video-id]").forEach(function (screen) {
+    screen.addEventListener("click", function () {
+      var id = screen.getAttribute("data-video-id");
+      if (!id) return;
+      var live = document.createElement("div");
+      live.className = "vt-screen is-live";
+      var iframe = document.createElement("iframe");
+      iframe.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+      iframe.title = screen.getAttribute("aria-label") || "Melvin Lum memorial video";
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+      iframe.setAttribute("allowfullscreen", "");
+      live.appendChild(iframe);
+      screen.replaceWith(live);
+    });
   });
 })();
 </script>
